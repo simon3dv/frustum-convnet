@@ -165,7 +165,7 @@ class ProviderDataset(Dataset):
         point_set = point_set[choice, :]
 
         box = self.box2d_list[index]
-        if type(self.calib_list[index])==list:
+        if type(self.calib_list[index])==dict:
             P = self.calib_list[index]['P2'].reshape(3, 4)
         else:
             P = self.calib_list[index].reshape(3, 4)

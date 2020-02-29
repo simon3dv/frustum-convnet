@@ -485,7 +485,7 @@ def extract_frustum_data(idx_filename, split, sensor, output_filename, viz=False
     Output:
         None (will write a .pickle file to the disk)
     '''
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI'), split)
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'), split)
     data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
 
     id_list = []  # int number

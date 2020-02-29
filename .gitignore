@@ -131,3 +131,6 @@ output/
 
 .vscode/*
 
+*.pth
+.idea
+*.pickle

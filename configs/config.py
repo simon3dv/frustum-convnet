@@ -62,6 +62,8 @@ cfg = __C
 
 __C.TRAIN = AttrDict()
 
+__C.TRAIN.FILE = ''
+
 __C.TRAIN.WEIGHTS = ''
 
 __C.TRAIN.BATCH_SIZE = 32
@@ -86,7 +88,9 @@ __C.TRAIN.MOMENTUM = 0.9
 
 __C.TRAIN.WEIGHT_DECAY = 0.0000
 
-# train, val, trainval
+__C.TRAIN.NUM_POINT = 1024
+
+## train, val, trainval
 __C.TRAIN.DATASET = 'train'
 
 
@@ -101,6 +105,8 @@ __C.MODEL.NUM_CLASSES = 2
 # Test options
 __C.TEST = AttrDict()
 
+__C.TEST.FILE = ''
+
 __C.TEST.WEIGHTS = ''
 
 __C.TEST.BATCH_SIZE = 32
@@ -114,27 +120,38 @@ __C.TEST.THRESH = 0.1
 # val, test
 __C.TEST.DATASET = 'val'
 
+__C.TEST.NUM_POINT = 1024
 
+__C.TEST.GT_DIR = 'dataset/KITTI/object/training/label_2/'
+
+__C.TEST.IDX_PATH = 'kitti/image_sets/val.txt'
 # Data options
-
 __C.DATA = AttrDict()
 
 __C.DATA.FILE = ''
 
+__C.DATA.DATASET = 'kitti'
+
 __C.DATA.DATA_ROOT = 'kitti'
 
 # intensity for kitti, rgb for sunrgbd
-__C.DATA.WITH_EXTRA_FEAT = True
+__C.DATA.NUM_CHANNEL = 4
 
 __C.DATA.NUM_SAMPLES = 1024
 
-__C.DATA.NUM_SAMPLES_DET = 512
+#__C.DATA.NUM_SAMPLES_DET = 512
 
 __C.DATA.CAR_ONLY = True
 
 __C.DATA.PEOPLE_ONLY = False
 
+#__C.DATA.OBJTYPE = 'caronly'
+
+__C.DATA.SENSOR = 'cam_front'
+
 __C.DATA.RTC = True
+
+__C.DATA.WITH_EXTRA_FEAT = False
 
 __C.DATA.NUM_HEADING_BIN = 12
 
@@ -147,6 +164,19 @@ __C.DATA.HEIGHT_HALF = (0.25, 0.5, 1.0, 2.0)
 
 __C.DATA.EXTEND_FROM_DET = False
 
+__C.DATA.USE_XYZ = True
+
+__C.DATA.USE_REFLECTION_AS_CHANNEL = False
+
+__C.DATA.USE_RGB_AS_CHANNEL = False
+
+__C.DATA.W_CROP = 150
+
+__C.DATA.H_CROP = 100
+
+__C.DATA.BLACK_TEST = False
+
+__C.DATA.WHITE_TEST = False
 
 # Loss options
 __C.LOSS = AttrDict()

@@ -80,9 +80,12 @@ def project_image_to_rect(uv_depth, P):
     c_v = P[1, 2]
     f_u = P[0, 0]
     f_v = P[1, 1]
-    b_x = P[0, 3] / (-f_u)  # relative
-    b_y = P[1, 3] / (-f_v)
-
+    if P.shape[1] == 4:
+        b_x = P[0, 3] / (-f_u)  # relative
+        b_y = P[1, 3] / (-f_v)
+    else:
+        b_x = 0
+        b_y = 0
     n = uv_depth.shape[0]
     x = ((uv_depth[:, 0] - c_u) * uv_depth[:, 2]) / f_u + b_x
     y = ((uv_depth[:, 1] - c_v) * uv_depth[:, 2]) / f_v + b_y

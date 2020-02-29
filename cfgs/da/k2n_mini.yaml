@@ -19,18 +19,18 @@ MODEL:
 
 TEST:
   WEIGHTS: pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
-  # FILE: nuscenes2kitti/frustum_caronly_CAM_FRONT_v1.0-mini.pickle
+  FILE: nuscenes2kitti/data/pickle_data/frustum_caronly_CAM_FRONT_v1.0-mini.pickle
   BATCH_SIZE: 32
   METHOD: nms
   NUM_POINT: 1024
   DATASET: v1.0-mini
-  GT_DIR: dataset/nuScenes2KITTI/v1.0-mini/label_CAM_FRONT
+  GT_DIR: data/nuScenes2KITTI/v1.0-mini/label_CAM_FRONT
   IDX_PATH: nuscenes2kitti/image_sets/v1.0-mini.txt
 
 DATA:
-  FILE: datasets/provider_default.py
+  FILE: datasets/provider_da.py
   DATASET: nuscenes2kitti
-  DATA_ROOT: nuscenes2kitti
+  DATA_ROOT: nuscenes2kitti/data/pickle_data
   CAR_ONLY: True
   SENSOR: CAM_FRONT
   RTC: True
@@ -52,4 +52,3 @@ USE_TFBOARD: True
 NUM_WORKERS: 4
 FROM_RGB_DET: False
 disp: 100
-OVER_WRITE_TEST_FILE: nuscenes2kitti/frustum_caronly_CAM_FRONT_v1.0-mini.pickle

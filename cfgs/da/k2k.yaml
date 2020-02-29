@@ -28,9 +28,9 @@ TEST:
   IDX_PATH: kitti/image_sets/val.txt
 
 DATA:
-  FILE: datasets/provider_default.py
+  FILE: datasets/provider_da.py
   DATASET: kitti
-  DATA_ROOT: kitti
+  DATA_ROOT: kitti/data/pickle_data
   CAR_ONLY: True
   SENSOR: CAM_FRONT
   RTC: True
@@ -40,7 +40,7 @@ DATA:
   STRIDE: (0.25, 0.5, 1.0, 2.0)
   HEIGHT_HALF: (0.25, 0.5, 1.0, 2.0)
   NUM_HEADING_BIN: 12
-  USE_REFLECTION_AS_CHANNEL: True
+  USE_REFLECTION_AS_CHANNEL: False
   USE_RGB_AS_CHANNEL: False
 
 
@@ -52,4 +52,3 @@ USE_TFBOARD: True
 NUM_WORKERS: 4
 FROM_RGB_DET: False
 disp: 1000
-OVER_WRITE_TEST_FILE: kitti/data/pickle_data/frustum_caronly_val.pickle

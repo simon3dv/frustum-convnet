@@ -165,10 +165,13 @@ class ProviderDataset(Dataset):
         point_set = point_set[choice, :]
 
         box = self.box2d_list[index]
-        if type(self.calib_list[index])==list:
-            P = self.calib_list[index]['P2'].reshape(3, 4)
+        if type(self.calib_list[index])==dict:
+            if 'P2' in self.calib_list[index].keys():
+                P = self.calib_list[index]['P2'].reshape(3, -1)
+            elif 'CAM_FRONT' in self.calib_list[index].keys():
+                P = self.calib_list[index]['P2'].reshape(3, -1)
         else:
-            P = self.calib_list[index].reshape(3, 4)
+            P = self.calib_list[index].reshape(3, -1)
         ref1, ref2, ref3, ref4 = self.generate_ref(box, P)
 
         if rotate_to_center:

@@ -111,7 +111,7 @@ def write_detection_results(output_dir, det_results):
 
     # Make sure for each frame (no matter if we have measurement for that frame),
     # there is a TXT file
-    idx_path = 'kitti/image_sets/%s.txt' % cfg.TEST.DATASET
+    idx_path = cfg.TEST.IDX_PATH
 
     to_fill_filename_list = [line.rstrip() + '.txt' for line in open(idx_path)]
     fill_files(result_dir, to_fill_filename_list)
@@ -145,7 +145,7 @@ def write_detection_results_nms(output_dir, det_results, threshold=cfg.TEST.THRE
 
 def evaluate_py_wrapper(output_dir, async_eval=False):
     # official evaluation  
-    gt_dir = 'data/kitti/training/label_2/'
+    gt_dir = cfg.TEST.GT_DIR
     command_line = './train/kitti_eval/evaluate_object_3d_offline %s %s' % (gt_dir, output_dir)
     command_line += ' 2>&1 | tee -a  %s/log_test.txt' % (os.path.join(output_dir))
     print(command_line)
@@ -344,7 +344,7 @@ if __name__ == '__main__':
         random_shift=False,
         one_hot=True,
         from_rgb_detection=cfg.FROM_RGB_DET,
-        overwritten_data_path=cfg.OVER_WRITE_TEST_FILE)
+        overwritten_data_path=cfg.TEST.FILE)
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,

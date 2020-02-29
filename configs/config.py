@@ -122,7 +122,7 @@ __C.TEST.DATASET = 'val'
 
 __C.TEST.NUM_POINT = 1024
 
-__C.TEST.GT_DIR = 'dataset/KITTI/object/training/label_2/'
+__C.TEST.GT_DIR = 'data/kitti/training/label_2/'
 
 __C.TEST.IDX_PATH = 'kitti/image_sets/val.txt'
 # Data options

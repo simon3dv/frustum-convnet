@@ -20,7 +20,15 @@ import ipdb
 import torch
 import torchvision.transforms as transforms
 from torch.utils.data.dataloader import default_collate
-
+from datasets.dataset_info import KITTICategory
+NUM_SIZE_CLUSTER = len(KITTICategory.CLASSES)
+MEAN_SIZE_ARRAY = KITTICategory.MEAN_SIZE_ARRAY
+#g_type_mean_size = KITTICategory.CLASS_MEAN_SIZE
+#g_mean_size_arr = MEAN_SIZE_ARRAY
+#g_type2class={'Car':0,'Pedestrian':1,'Cyclist':2}
+#g_class2type = {g_type2class[t]:t for t in g_type2class}
+#g_type2onehotclass = {'Car': 0, 'Pedestrian': 1, 'Cyclist': 2}
+"""
 # -----------------
 # Global Constants
 # -----------------
@@ -58,7 +66,7 @@ g_type_mean_size = {'Car': np.array([3.88311640418,1.62856739989,1.52563191462])
 g_mean_size_arr = np.zeros((NUM_SIZE_CLUSTER, 3)) # size clustrs
 for i in range(NUM_SIZE_CLUSTER):
     g_mean_size_arr[i,:] = g_type_mean_size[g_class2type[i]]
-
+"""
 
 def rotate_pc_along_y(pc, rot_angle):
     '''
@@ -72,6 +80,7 @@ def rotate_pc_along_y(pc, rot_angle):
     cosval = np.cos(rot_angle)
     sinval = np.sin(rot_angle)
     rotmat = np.array([[cosval, -sinval],[sinval, cosval]])
+    pc = pc.copy()###
     pc[:,[0,2]] = np.dot(pc[:,[0,2]], np.transpose(rotmat))
     return pc
 
@@ -154,7 +163,7 @@ class ProviderDataset(object):
     def __init__(self, npoints, split,
                  random_flip=False, random_shift=False, rotate_to_center=False,
                  overwritten_data_path=None, from_rgb_detection=False, one_hot=False,
-                 gen_ref=True,with_image=False):
+                 gen_ref=True, gen_image=False, gen_seg=False):
         '''
         Input:
             npoints: int scalar, number of points for frustum point cloud.
@@ -178,7 +187,8 @@ class ProviderDataset(object):
         self.one_hot = one_hot
         self.gen_ref = gen_ref
         self.from_rgb_detection = from_rgb_detection
-        self.with_image = with_image
+        self.gen_image = gen_image
+        self.gen_seg = gen_seg
         self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         if from_rgb_detection:
             with open(overwritten_data_path,'rb') as fp:
@@ -190,7 +200,7 @@ class ProviderDataset(object):
                 self.frustum_angle_list = pickle.load(fp) 
                 self.prob_list = pickle.load(fp)
                 self.calib_list = pickle.load(fp)
-                if with_image:
+                if gen_image:
                     self.image_list = pickle.load(fp)
         else:
             with open(overwritten_data_path,'rb') as fp:
@@ -205,7 +215,7 @@ class ProviderDataset(object):
                 # frustum_angle is clockwise angle from positive x-axis
                 self.frustum_angle_list = pickle.load(fp)
                 self.calib_list = pickle.load(fp)
-                if with_image:
+                if gen_image:
                     self.image_list = pickle.load(fp)
         if gen_ref:
             s1, s2, s3, s4 = cfg.DATA.STRIDE#(0.25, 0.5, 1.0, 2.0)
@@ -220,18 +230,24 @@ class ProviderDataset(object):
 
     def __getitem__(self, index):
         ''' Get index-th element from the picked file dataset. '''
+        rotate_to_center = cfg.DATA.RTC
+        with_extra_feat = cfg.DATA.WITH_EXTRA_FEAT
+
         # ------------------------------ INPUTS ----------------------------
+
         rot_angle = self.get_center_view_rot_angle(index)
         #np.pi/2.0 + self.frustum_angle_list [index]float,[-pi/2,pi/2]
 
         box = self.box2d_list[index]
 
         # Compute one hot vector
+        cls_type = self.type_list[index]
+        # assert(cls_type in ['Car', 'Pedestrian', 'Cyclist'])
+        size_class = KITTICategory.CLASSES.index(cls_type)
         if self.one_hot:#True
-            cls_type = self.type_list[index]
-            assert(cls_type in ['Car', 'Pedestrian', 'Cyclist'])
             one_hot_vec = np.zeros((3))
-            one_hot_vec[g_type2onehotclass[cls_type]] = 1
+            one_hot_vec[size_class] = 1
+            #one_hot_vec[g_type2onehotclass[cls_type]] = 1
 
         # Get point cloud
         if self.rotate_to_center:#True
@@ -240,11 +256,10 @@ class ProviderDataset(object):
             point_set = self.input_list[index]
 
         # Get image
-        if self.with_image:
+        if self.gen_image:
             # With whole Image(whole size, not region)
             image = self.image_list[index]#(370, 1224, 3),uint8
             xmin,ymin,xmax,ymax = box
-            ipdb.set_trace()
             image_crop =np.transpose(image, (2, 0, 1))[:, ymin:ymax, xmin:xmax]
             h, w = image_crop.shape
             P = self.calib_list[index]  # 3x4(kitti) or 3x3(nuscenes)
@@ -255,21 +270,34 @@ class ProviderDataset(object):
             pts_2d[:,1] -= h
             pts_2d = np.array(pts_2d, dtype=np.int32)
             query_v1 = pts_2d[:,0] * w + pts_2d[:,1]#vector that map ind_pc to ind_rgb
-            ipdb.set_trace()
+
 
         # Use extra feature as channel
+        if not with_extra_feat:
+            point_set = point_set[:, :3]
+        """
         if not cfg.DATA.USE_REFLECTION_AS_CHANNEL and not cfg.DATA.USE_RGB_AS_CHANNEL:
             point_set = point_set[:,:3]
         elif cfg.DATA.USE_REFLECTION_AS_CHANNEL and not cfg.DATA.USE_RGB_AS_CHANNEL:
             point_set = point_set[:, :4]
         elif not cfg.DATA.USE_REFLECTION_AS_CHANNEL and cfg.DATA.USE_RGB_AS_CHANNEL:
             point_set = point_set[:, :6]
-        # Resample
-        choice = np.random.choice(point_set.shape[0], self.npoints, replace=True)
+        """
+        # Resample ###
+        if self.npoints > 0:
+            # choice = np.random.choice(point_set.shape[0], self.npoints, replace=True)
+            choice = np.random.choice(point_set.shape[0], self.npoints, point_set.shape[0] < self.npoints)
+        else:
+            choice = np.random.permutation(len(point_set.shape[0]))
+
         point_set = point_set[choice, :]
 
         if self.gen_ref:#fconvnet
             P = self.calib_list[index]  # 3x4(kitti) or 3x3(nuscenes)
+            if type(P) == dict:
+                P = P['P2'].reshape(3,-1)
+            else:
+                P=P.reshape[3,-1]
             ref1, ref2, ref3, ref4 = self.generate_ref(box, P)
             if self.rotate_to_center:
                 ref1 = self.get_center_view(ref1, index)#(280, 3)
@@ -296,14 +324,14 @@ class ProviderDataset(object):
                 data_inputs.update({'center_ref3': torch.FloatTensor(ref3).transpose(1, 0)})
                 data_inputs.update({'center_ref4': torch.FloatTensor(ref4).transpose(1, 0)})
 
-            if self.with_image:
+            if self.gen_image:
                 data_inputs.update({'img': self.nrom(torch.FloatTensor(image_crop))})
                 data_inputs.update({'P': torch.FloatTensor(P)})
                 data_inputs.update({'query_v1': torch.LongTensor(query_v1)})
 
             return data_inputs
         # ------------------------------ LABELS ----------------------------
-        if not self.gen_ref:#not fconvnet
+        if self.gen_seg:
             seg = self.label_list[index]
             seg = seg[choice]#(1024,),array([0., 1., 0., ..., 1., 1., 1.])
 
@@ -319,12 +347,9 @@ class ProviderDataset(object):
         else:
             heading_angle = self.heading_list[index]# rotation_y
 
-        angle_class, angle_residual = angle2class(heading_angle,
-            NUM_HEADING_BIN)
-
         # Size
-        size_class, size_residual = size2class(self.size_list[index],
-            self.type_list[index]) #5, array([0.25717603, 0.00293633, 0.12301873])
+        box3d_size = self.size_list[index]
+
         # Data Augmentation
         if self.random_flip:
             # note: rot_angle won't be correct if we have random_flip
@@ -345,8 +370,6 @@ class ProviderDataset(object):
             shift = np.clip(np.random.randn()*dist*0.05, dist*0.8, dist*1.2)
             point_set[:,2] += shift
             box3d_center[2] += shift
-
-        box3d_size = self.size_list[index]
 
         data_inputs = {
             'point_cloud': torch.FloatTensor(point_set).transpose(1, 0),
@@ -372,13 +395,17 @@ class ProviderDataset(object):
             data_inputs.update({'box3d_size': torch.FloatTensor(box3d_size)})
             data_inputs.update({'box3d_heading': torch.FloatTensor([heading_angle])})
         else:#F-Pointnets
+            assert(self.gen_ref)
+            """
+            #size_class, size_residual = size2class(self.size_list[index],self.type_list[index]) #5, array([0.25717603, 0.00293633, 0.12301873])
+            # angle_class, angle_residual = angle2class(heading_angle,NUM_HEADING_BIN)
             data_inputs.update({'seg': seg})
             data_inputs.update({'size_class':torch.LongTensor([size_class])})
             data_inputs.update({'size_residual':torch.FloatTensor([size_residual])})
             data_inputs.update({'angle_class':torch.LongTensor([angle_class])})
             data_inputs.update({'angle_residual':torch.FloatTensor([angle_residual])})
-
-        if self.with_image:
+            """
+        if self.gen_image:
             data_inputs.update({'img': self.nrom(torch.FloatTensor(image_crop))})
             data_inputs.update({'P': torch.FloatTensor(P)})
             data_inputs.update({'query_v1': torch.LongTensor(query_v1)})
@@ -613,6 +640,12 @@ def collate_fn(batch):
     return default_collate(batch)
 
 if __name__=='__main__':
+    from_rgb_detection = True
+    if from_rgb_detection:
+        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val_rgb_detection.pickle'
+    else:
+        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val.pickle'
+
     gen_ref = True
     show = False
     import mayavi.mlab as mlab 
@@ -620,8 +653,8 @@ if __name__=='__main__':
     median_list = []
     dataset = ProviderDataset(1024, split='val',
         rotate_to_center=True, random_flip=True, random_shift=True,
-        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val.pickle',
-        gen_ref = gen_ref)
+        overwritten_data_path=overwritten_data_path,
+        gen_ref = gen_ref,from_rgb_detection=from_rgb_detection)
     for i in range(len(dataset)):
         print(i)
         data_dicts = dataset[i]

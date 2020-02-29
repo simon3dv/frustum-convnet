@@ -24,7 +24,7 @@ TEST:
   METHOD: nms
   NUM_POINT: 1024
   DATASET: v1.0-mini
-  GT_DIR: data/nuScenes2KITTI/v1.0-val/label_CAM_FRONT
+  GT_DIR: data/nuScenes2KITTI/v1.0-trainval/label_CAM_FRONT
   IDX_PATH: nuscenes2kitti/image_sets/v1.0-val.txt
 
 DATA:

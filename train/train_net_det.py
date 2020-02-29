@@ -255,8 +255,8 @@ def main():
         split=cfg.TRAIN.DATASET,
         one_hot=True,
         random_flip=True,
-        random_shift=True,
-        extend_from_det=cfg.DATA.EXTEND_FROM_DET)
+        random_shift=True,)
+        #extend_from_det=cfg.DATA.EXTEND_FROM_DET)
 
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -272,8 +272,8 @@ def main():
         split=cfg.TEST.DATASET,
         one_hot=True,
         random_flip=False,
-        random_shift=False,
-        extend_from_det=cfg.DATA.EXTEND_FROM_DET)
+        random_shift=False,)
+        #extend_from_det=cfg.DATA.EXTEND_FROM_DET)
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset,

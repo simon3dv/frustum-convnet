@@ -1,5 +1,5 @@
 TRAIN:
-  # FILE: kitti/frustum_caronly_train.pickle
+  FILE: kitti/frustum_caronly_train.pickle
   BATCH_SIZE: 32
   START_EPOCH: 0
   MAX_EPOCH: 50
@@ -19,7 +19,7 @@ MODEL:
 
 TEST:
   WEIGHTS: pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
-  # FILE: nuscenes2kitti/frustum_caronly_CAM_FRONT_v1.0-mini.pickle
+  FILE: nuscenes2kitti/frustum_caronly_CAM_FRONT_v1.0-mini.pickle
   BATCH_SIZE: 32
   METHOD: nms
   NUM_POINT: 1024

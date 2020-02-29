@@ -363,7 +363,7 @@ class ProviderDataset(object):
 
         if self.gen_ref:#F-ConvNet
             labels = self.generate_ref_labels(box3d_center, box3d_size, heading_angle, ref2, P)
-            data_inputs.update({'ref_label': torch.LongTensor(labels)})
+            data_inputs.update({'label': torch.LongTensor(labels)})
             data_inputs.update({'center_ref1': torch.FloatTensor(ref1).transpose(1, 0)})
             data_inputs.update({'center_ref2': torch.FloatTensor(ref2).transpose(1, 0)})
             data_inputs.update({'center_ref3': torch.FloatTensor(ref3).transpose(1, 0)})

@@ -22,6 +22,7 @@ import torch.optim as optim
 import torch.backends.cudnn as cudnn
 import torchvision
 import pickle
+from tqdm import tqdm
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
@@ -95,11 +96,6 @@ def train(data_loader, model, optimizer, lr_scheduler, epoch, logger=None):
     model.train()
 
     MIN_LR = cfg.TRAIN.MIN_LR
-    lr_scheduler.step(epoch)
-    if MIN_LR > 0:
-        if lr_scheduler.get_lr()[0] < MIN_LR:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = MIN_LR
 
     cur_lr = optimizer.param_groups[0]['lr']
     # cur_mom = get_bn_decay(epoch)
@@ -156,6 +152,12 @@ def train(data_loader, model, optimizer, lr_scheduler, epoch, logger=None):
             states = training_states.get_states(avg=True)
             for tag, value in states.items():
                 logger.scalar_summary(tag, value, int(epoch))
+
+    lr_scheduler.step(epoch)
+    if MIN_LR > 0:
+        if lr_scheduler.get_lr()[0] < MIN_LR:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = MIN_LR
 
 
 def validate(data_loader, model, epoch, logger=None):
@@ -255,7 +257,8 @@ def main():
         split=cfg.TRAIN.DATASET,
         one_hot=True,
         random_flip=True,
-        random_shift=True,)
+        random_shift=True,
+        overwritten_data_path=cfg.TRAIN.FILE)
         #extend_from_det=cfg.DATA.EXTEND_FROM_DET)
 
     train_loader = torch.utils.data.DataLoader(
@@ -272,7 +275,8 @@ def main():
         split=cfg.TEST.DATASET,
         one_hot=True,
         random_flip=False,
-        random_shift=False,)
+        random_shift=False,
+        overwritten_data_path=cfg.TEST.FILE)
         #extend_from_det=cfg.DATA.EXTEND_FROM_DET)
 
     val_loader = torch.utils.data.DataLoader(

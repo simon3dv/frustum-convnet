@@ -664,13 +664,15 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
 
-
+    save_dir = os.path.join(BASE_DIR,'data','pickle_data')
     if args.car_only:
         type_whitelist = ['Car']
         output_prefix = 'frustum_caronly_'
     else:
         type_whitelist = ['Car', 'Pedestrian', 'Cyclist']
         output_prefix = 'frustum_carpedcyc_'
+    if args.with_image:
+        output_prefix += 'wimage_'
 
     if args.CAM_FRONT_only:
         sensor_list = ['CAM_FRONT']
@@ -699,7 +701,7 @@ if __name__ == '__main__':
                 os.path.join(BASE_DIR, 'image_sets/v1.0-mini.txt'),
                 'v1.0-mini',
                 sensor,
-                os.path.join(BASE_DIR, output_prefix + sensor_prefix + 'v1.0-mini.pickle'),
+                os.path.join(save_dir, output_prefix + sensor_prefix + 'v1.0-mini.pickle'),
                 viz=False, perturb_box2d=True, augmentX=5,
                 type_whitelist=type_whitelist,
                 with_image=args.with_image)
@@ -712,7 +714,7 @@ if __name__ == '__main__':
                 os.path.join(BASE_DIR, 'image_sets', args.train_sets+'.txt'),
                 args.gen_split,
                 sensor,
-                os.path.join(BASE_DIR, output_prefix + sensor_prefix + args.train_sets+'.pickle'),
+                os.path.join(save_dir, output_prefix + sensor_prefix + args.train_sets+'.pickle'),
                 viz=False, perturb_box2d=True, augmentX=5,
                 type_whitelist=type_whitelist,
                 with_image=args.with_image)
@@ -725,7 +727,7 @@ if __name__ == '__main__':
                 os.path.join(BASE_DIR, 'image_sets', args.val_sets+'.txt'),
                 args.gen_split,
                 sensor,
-                os.path.join(BASE_DIR, output_prefix + sensor_prefix + args.val_sets+'.pickle'),
+                os.path.join(save_dir, output_prefix + sensor_prefix + args.val_sets+'.pickle'),
                 viz=False, perturb_box2d=False, augmentX=1,
                 type_whitelist=type_whitelist,
                 with_image=args.with_image)

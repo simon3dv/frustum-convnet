@@ -28,7 +28,7 @@ TEST:
   IDX_PATH: nuscenes2kitti/image_sets/v1.0-val.txt
 
 DATA:
-  FILE: datasets/provider_default.py
+  FILE: datasets/provider_da.py
   DATASET: nuscenes2kitti
   DATA_ROOT: nuscenes2kitti
   CAR_ONLY: True

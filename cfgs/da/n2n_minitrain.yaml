@@ -1,5 +1,5 @@
 TRAIN:
-  FILE: kitti/frustum_caronly_train.pickle
+  FILE: nuscenes2kitti/data/pickle_data/frustum_caronly_CAM_FRONT_train.pickle
   BATCH_SIZE: 32
   START_EPOCH: 0
   MAX_EPOCH: 50
@@ -46,10 +46,10 @@ DATA:
 
 RESUME: False
 NUM_GPUS: 1
-OUTPUT_DIR: 'log/k2k/xyz'
+OUTPUT_DIR: 'log/n2n'
 SAVE_SUB_DIR: 'val_nms'
 USE_TFBOARD: True
 NUM_WORKERS: 4
 FROM_RGB_DET: False
-disp: 100
+disp: 1000
 #OVER_WRITE_TEST_FILE: nuscenes2kitti/frustum_caronly_CAM_FRONT_v1.0-val.pickle

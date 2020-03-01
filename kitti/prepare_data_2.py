@@ -187,7 +187,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
     Output:
         None (will write a .pickle file to the disk)
     '''
-    dataset = kitti_object(os.path.join(ROOT_DIR,'dataset/KITTI/object'), split)
+    dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'), split)
     data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
 
     id_list = [] # int number

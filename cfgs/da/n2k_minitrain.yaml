@@ -18,7 +18,7 @@ MODEL:
   NUM_CLASSES: 2
 
 TEST:
-  WEIGHTS: log/n2n/model_best.pth
+  WEIGHTS: output/da/n2n_minitrain/model_best.pth
   FILE: kitti/data/pickle_data/frustum_caronly_val.pickle
   BATCH_SIZE: 32
   METHOD: nms

@@ -44,7 +44,7 @@ class PointNetModule(nn.Module):
         self.nsample = nsample
         self.use_xyz = use_xyz
         self.mlp = mlp
-        
+
         if Infea > 0:
             use_feature = True
         else:

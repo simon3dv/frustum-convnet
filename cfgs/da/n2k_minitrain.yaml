@@ -18,14 +18,14 @@ MODEL:
   NUM_CLASSES: 2
 
 TEST:
-  WEIGHTS: pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
-  FILE: nuscenes2kitti/data/pickle_data/frustum_caronly_CAM_FRONT_v1.0-val.pickle
+  WEIGHTS: log/n2n/model_best.pth
+  FILE: kitti/data/pickle_data/frustum_caronly_val.pickle
   BATCH_SIZE: 32
   METHOD: nms
   NUM_POINT: 1024
-  DATASET: v1.0-val
-  GT_DIR: data/nuScenes2KITTI/v1.0-trainval/label_CAM_FRONT
-  IDX_PATH: nuscenes2kitti/image_sets/v1.0-val.txt
+  DATASET: val
+  GT_DIR: data/kitti/training/label_2
+  IDX_PATH: kitti/image_sets/val.txt
 
 DATA:
   FILE: datasets/provider_da.py
@@ -46,7 +46,7 @@ DATA:
 
 RESUME: False
 NUM_GPUS: 1
-OUTPUT_DIR: 'log/n2n'
+OUTPUT_DIR: 'log/n2k'
 SAVE_SUB_DIR: 'val_nms'
 USE_TFBOARD: True
 NUM_WORKERS: 4

@@ -103,7 +103,7 @@ class ProviderDataset(Dataset):
                 self.gt_box2d_list = self.box2d_list
                 #self.gt_box2d_list = pickle.load(fp)
                 self.calib_list = pickle.load(fp)
-      
+
             if extend_from_det:
                 extend_det_file = overwritten_data_path.replace('.', '_det.')
                 assert os.path.exists(extend_det_file), extend_det_file

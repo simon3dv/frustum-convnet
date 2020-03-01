@@ -61,13 +61,12 @@ class PointNetModule(nn.Module):
 
         self.conv2 = Conv2d(mlp[0], mlp[1], 1)
         self.conv3 = Conv2d(mlp[1], mlp[2], 1)
-        self.conv4 = Conv2d(mlp[2], mlp[3], 1)
 
-        init_params([self.conv1[0], self.conv2[0], self.conv3[0], self.conv4[0]], 'kaiming_normal')
-        init_params([self.conv1[1], self.conv2[1], self.conv3[1], self.conv4[1]], 1)
+        init_params([self.conv1[0], self.conv2[0], self.conv3[0]], 'kaiming_normal')
+        init_params([self.conv1[1], self.conv2[1], self.conv3[1]], 1)
 
     def forward(self, pc, feat, new_pc=None,
-                img1=None, img2=None, P=None, query_v1=None):
+                img=None, P=None, query_v1=None):
         batch_size = pc.size(0)
 
         npoint = new_pc.shape[2]
@@ -80,7 +79,7 @@ class PointNetModule(nn.Module):
         indices_rgb = torch.gather(query_v1, 1, indices.view(batch_size, npoint * k)) \
             .view(batch_size, npoint, k)
 
-        assert indices_rgb.data.max() < img1.shape[2]*img1.shape[3]
+        assert indices_rgb.data.max() < img.shape[2]*img.shape[3]
         assert indices_rgb.data.min() >= 0
 
         grouped_pc = None
@@ -102,39 +101,24 @@ class PointNetModule(nn.Module):
 
             # grouped_feature = torch.cat([new_feat.unsqueeze(3), grouped_feature], -1)
 
-        img1 = img1.view(batch_size,self.mlp[0],-1)
-        grouped_rgb1 = torch.gather(
-            img1, 2,
-            indices_rgb.view(batch_size, 1, npoint * k).expand(-1, self.mlp[0], -1)
-        ).view(batch_size, self.mlp[0], npoint, k)
-
-        grouped_rgb2 = None
-        if img2 is not None:
-            img2 = img2.view(batch_size,self.mlp[1],-1)
-            grouped_rgb2 = torch.gather(
-                img2, 2,
-                indices_rgb.view(batch_size, 1, npoint * k).expand(-1, self.mlp[1], -1)
-            ).view(batch_size, self.mlp[1], npoint, k)
-
         if self.use_feature and self.use_xyz:
             grouped_feature = torch.cat([grouped_pc, grouped_feature], 1)
         elif self.use_xyz:
             grouped_feature = grouped_pc.contiguous()
 
         grouped_feature = self.conv1(grouped_feature)
-        # mlp[0]+mlp[0]:
-        fusion_feature_1 = torch.cat([grouped_feature, grouped_rgb1], 1)
 
         grouped_feature = self.conv2(grouped_feature)
 
-        # mlp[1]+mlp[1]:
-        fusion_feature_2 = torch.cat([grouped_feature, grouped_rgb2], 1)
-
         grouped_feature = self.conv3(grouped_feature)
 
-        grouped_feature = self.conv4(grouped_feature)
+        img = img.view(batch_size,self.mlp[-1],-1)
+        grouped_rgb = torch.gather(
+            img, 2,
+            indices_rgb.view(batch_size, 1, npoint * k).expand(-1, self.mlp[-1], -1)
+        ).view(batch_size, self.mlp[-1], npoint, k)
 
-        grouped_feature = torch.cat([fusion_feature_1, fusion_feature_2, grouped_feature], 1)
+        grouped_feature = torch.cat([grouped_feature, grouped_rgb], 1)
 
         # output, _ = torch.max(grouped_feature, -1)
 
@@ -153,22 +137,21 @@ class PointNetFeat(nn.Module):
         u = cfg.DATA.HEIGHT_HALF
         assert len(u) == 4
         self.pointnet1 = PointNetModule(
-            input_channel - 3, [32, 64, 64, 128], u[0], 32, use_xyz=True, use_feature=True)
+            input_channel - 3, [64, 64, 128], u[0], 32, use_xyz=True, use_feature=True)
 
         self.pointnet2 = PointNetModule(
-            input_channel - 3, [32, 64, 64, 128], u[1], 64, use_xyz=True, use_feature=True)
+            input_channel - 3, [64, 64, 128], u[1], 64, use_xyz=True, use_feature=True)
 
         self.pointnet3 = PointNetModule(
-            input_channel - 3, [32, 128, 128, 256], u[2], 64, use_xyz=True, use_feature=True)
+            input_channel - 3, [128, 128, 256], u[2], 64, use_xyz=True, use_feature=True)
 
         self.pointnet4 = PointNetModule(
-            input_channel - 3, [32, 256, 256, 512], u[3], 128, use_xyz=True, use_feature=True)
+            input_channel - 3, [128, 256, 512], u[3], 128, use_xyz=True, use_feature=True)
 
-        self.econv1 = Conv2d(32, 32, 1)
-        self.econv2 = Conv2d(32, 64, 1)
-        self.econv3 = Conv2d(64, 64, 1)
-        self.econv4 = Conv2d(64, 128, 1)
-        self.econv5 = Conv2d(128, 256, 1)
+        self.econv1 = Conv2d(32, 128, 1)
+        self.econv2 = Conv2d(128, 128, 1)
+        self.econv3 = Conv2d(128, 256, 1)
+        self.econv4 = Conv2d(256, 512, 1)
 
     def forward(self, point_cloud, sample_pc, feat=None, one_hot_vec=None,
                 img=None, P=None, query_v1=None):
@@ -182,18 +165,17 @@ class PointNetFeat(nn.Module):
         img2 = self.econv2(img1)
         img3 = self.econv3(img2)
         img4 = self.econv4(img3)
-        img5 = self.econv5(img4)
 
-        feat1 = self.pointnet1(pc, feat, pc1,  img1, img2, P, query_v1,)
+        feat1 = self.pointnet1(pc, feat, pc1,  img1, P, query_v1,)
         feat1, _ = torch.max(feat1, -1)
 
-        feat2 = self.pointnet2(pc, feat, pc2,  img1, img3, P, query_v1,)
+        feat2 = self.pointnet2(pc, feat, pc2,  img2, P, query_v1,)
         feat2, _ = torch.max(feat2, -1)
 
-        feat3 = self.pointnet3(pc, feat, pc3,  img1, img4, P, query_v1,)
+        feat3 = self.pointnet3(pc, feat, pc3,  img3, P, query_v1,)
         feat3, _ = torch.max(feat3, -1)
 
-        feat4 = self.pointnet4(pc, feat, pc4,  img1, img5, P, query_v1,)
+        feat4 = self.pointnet4(pc, feat, pc4,  img4, P, query_v1,)
         feat4, _ = torch.max(feat4, -1)
 
         if one_hot_vec is not None:
@@ -214,26 +196,26 @@ class PointNetFeat(nn.Module):
 
 # FCN
 class ConvFeatNet(nn.Module):
-    def __init__(self, i_c=320, num_vec=3):
+    def __init__(self, i_c=256, num_vec=3):
         super(ConvFeatNet, self).__init__()
 
-        self.block1_conv1 = Conv1d(i_c + num_vec, 320, 3, 1, 1)
+        self.block1_conv1 = Conv1d(i_c + num_vec, 256, 3, 1, 1)
 
-        self.block2_conv1 = Conv1d(320, 320, 3, 2, 1)
-        self.block2_conv2 = Conv1d(320, 320, 3, 1, 1)
-        self.block2_merge = Conv1d(320 + 320 + num_vec, 320, 1, 1)
+        self.block2_conv1 = Conv1d(256, 256, 3, 2, 1)
+        self.block2_conv2 = Conv1d(256, 256, 3, 1, 1)
+        self.block2_merge = Conv1d(256 + 256 + num_vec, 256, 1, 1)
 
-        self.block3_conv1 = Conv1d(320, 640, 3, 2, 1)
-        self.block3_conv2 = Conv1d(640, 640, 3, 1, 1)
-        self.block3_merge = Conv1d(640 + 576 + num_vec, 640, 1, 1)
+        self.block3_conv1 = Conv1d(256, 512, 3, 2, 1)
+        self.block3_conv2 = Conv1d(512, 512, 3, 1, 1)
+        self.block3_merge = Conv1d(512 + 512 + num_vec, 512, 1, 1)
 
-        self.block4_conv1 = Conv1d(640, 1280, 3, 2, 1)
-        self.block4_conv2 = Conv1d(1280, 1280, 3, 1, 1)
-        self.block4_merge = Conv1d(1280 + 1088 + num_vec, 1280, 1, 1)
+        self.block4_conv1 = Conv1d(512, 1024, 3, 2, 1)
+        self.block4_conv2 = Conv1d(1024, 1024, 3, 1, 1)
+        self.block4_merge = Conv1d(1024 + 1024 + num_vec, 1024, 1, 1)
 
-        self.block2_deconv = DeConv1d(320, 640, 1, 1, 0)
-        self.block3_deconv = DeConv1d(640, 640, 2, 2, 0)
-        self.block4_deconv = DeConv1d(1280, 640, 4, 4, 0)
+        self.block2_deconv = DeConv1d(256, 512, 1, 1, 0)
+        self.block3_deconv = DeConv1d(512, 512, 2, 2, 0)
+        self.block4_deconv = DeConv1d(1024, 512, 4, 4, 0)
 
         for m in self.modules():
             if isinstance(m, (nn.Conv1d, nn.ConvTranspose1d)):
@@ -292,8 +274,8 @@ class PointNetDet(nn.Module):
 
         output_size = 3 + num_bins * 2 + NUM_SIZE_CLUSTER * 4
 
-        self.reg_out = nn.Conv1d(1920, output_size, 1)
-        self.cls_out = nn.Conv1d(1920, 2, 1)
+        self.reg_out = nn.Conv1d(1536, output_size, 1)
+        self.cls_out = nn.Conv1d(1536, 2, 1)
         self.relu = nn.ReLU(True)
 
         nn.init.kaiming_uniform_(self.cls_out.weight, mode='fan_in')
@@ -614,14 +596,14 @@ if __name__ == '__main__':
         # 'ref_label', 'center_ref1', 'center_ref2', 'center_ref3', 'center_ref4',
         # 'size_class', 'box3d_size', 'box3d_heading', 'image', 'P', 'query_v1'])
         tic = time.perf_counter()
-        losses, metrics= model(data_dicts_var)
+        losses, metrics = model(data_dicts_var)
         tic2 = time.perf_counter()
-        t += (tic2-tic)
-        print("Time:%.2fms"%(tic2))
+        t += (tic2 - tic)
+        print("Time:%.2fms" % (tic2))
         print()
-        for key,value in losses.items():
-            print(key,value)
+        for key, value in losses.items():
+            print(key, value)
         print()
-        for key,value in metrics.items():
-            print(key,value)
-    print("Avr Time:%.2fms"%(t/len(dataset)))
+        for key, value in metrics.items():
+            print(key, value)
+    print("Avr Time:%.2fms" % (t / len(dataset)))

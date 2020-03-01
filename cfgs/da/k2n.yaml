@@ -18,7 +18,7 @@ MODEL:
   NUM_CLASSES: 2
 
 TEST:
-  WEIGHTS: pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
+  WEIGHTS: output/da/k2k/model_best.pth #pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
   FILE: nuscenes2kitti/data/pickle_data/frustum_caronly_CAM_FRONT_v1.0-val.pickle
   BATCH_SIZE: 32
   METHOD: nms

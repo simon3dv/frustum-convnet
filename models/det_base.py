@@ -510,3 +510,30 @@ class PointNetDet(nn.Module):
         }
 
         return losses, metrics
+
+if __name__ == '__main__':
+    from datasets.provider_da import ProviderDataset
+    dataset = ProviderDataset(npoints=1024, split='val',
+        random_flip=True, random_shift=True, one_hot=True,
+        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val.pickle')
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False,
+                            num_workers=4, pin_memory=True)
+    model = PointNetDet(3, num_vec=0, num_classes=2).cuda()
+    t = 0
+    for batch, data_dicts in enumerate(dataloader):
+        data_dicts_var = {key: value.cuda() for key, value in data_dicts.items()}
+        # dict_keys(['point_cloud', 'rot_angle', 'box3d_center', 'one_hot',
+        # 'ref_label', 'center_ref1', 'center_ref2', 'center_ref3', 'center_ref4',
+        # 'size_class', 'box3d_size', 'box3d_heading', 'image', 'P', 'query_v1'])
+        tic = time.perf_counter()
+        losses, metrics = model(data_dicts_var)
+        tic2 = time.perf_counter()
+        t += (tic2 - tic)
+        print("Time:%.2fms" % (tic2))
+        print()
+        for key, value in losses.items():
+            print(key, value)
+        print()
+        for key, value in metrics.items():
+            print(key, value)
+    print("Avr Time:%.2fms" % (t / len(dataset)))

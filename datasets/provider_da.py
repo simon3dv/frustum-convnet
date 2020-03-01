@@ -57,6 +57,7 @@ class ProviderDataset(Dataset):
         car_only = cfg.DATA.CAR_ONLY
         people_only = cfg.DATA.PEOPLE_ONLY
 
+        assert overwritten_data_path != ''
         if not overwritten_data_path:
             if not from_rgb_detection:
                 if car_only:

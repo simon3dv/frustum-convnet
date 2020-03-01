@@ -313,7 +313,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
 
 def get_box3d_dim_statistics(idx_filename, type_whitelist=['Car','Pedestrian','Cyclist'],split='train'):
     ''' Collect and dump 3D bounding box statistics '''
-    dataset = kitti_object(os.path.join(ROOT_DIR,'dataset/KITTI/object'))
+    dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'))
     dimension_list = []
     type_list = []
     ry_list = []
@@ -383,7 +383,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
     Output:
         None (will write a .pickle file to the disk)
     '''
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), split)
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'), split)
     det_id_list, det_type_list, det_box2d_list, det_prob_list = \
         read_det_file(det_filename)
     cache_id = -1
@@ -486,7 +486,7 @@ def write_2d_rgb_detection(det_filename, split, result_dir):
     Usage:
         write_2d_rgb_detection("val_det.txt", "training", "results")
     '''
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'), split)
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'), split)
     det_id_list, det_type_list, det_box2d_list, det_prob_list = \
         read_det_file(det_filename)
     # map from idx to list of strings, each string is a line without \n

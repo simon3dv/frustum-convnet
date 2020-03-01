@@ -20,7 +20,7 @@ MODEL:
 TEST:
   WEIGHTS: ''#log/fusion/k2k/model_best.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
   FILE: kitti/data/pickle_data/frustum_caronly_wimage_val.pickle
-  BATCH_SIZE: 32
+  BATCH_SIZE: 8
   METHOD: nms
   NUM_POINT: 1024
   DATASET: val

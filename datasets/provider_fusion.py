@@ -487,7 +487,8 @@ if __name__ == '__main__':
     cfg.DATA.DATA_ROOT = 'kitti/data/pickle_data'
     cfg.DATA.RTC = True
     dataset = ProviderDataset(1024, split='val', random_flip=True, one_hot=True, random_shift=True,
-                              overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val.pickle')
+                              overwritten_data_path='kitti/data/pickle_data/frustum_caronly_wimage_val.pickle',
+                              gen_image=True)
 
     for i in range(len(dataset)):
         data = dataset[i]

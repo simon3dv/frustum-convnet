@@ -32,6 +32,10 @@ from configs.config import cfg
 from datasets.data_utils import rotate_pc_along_y, project_image_to_rect, compute_box_3d, extract_pc_in_box3d, roty
 from datasets.dataset_info import KITTICategory
 
+import torchvision.transforms as transforms
+from PIL import Image
+import cv2
+
 logger = logging.getLogger(__name__)
 
 
@@ -55,6 +59,13 @@ class ProviderDataset(Dataset):
         self.from_rgb_detection = from_rgb_detection
 
         self.gen_image = gen_image
+
+        self._R_MEAN = 92.8403
+        self._G_MEAN = 97.7996
+        self._B_MEAN = 93.5843
+        # self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.norm = transforms.Normalize(mean=[self._R_MEAN, self._G_MEAN, self._B_MEAN], std=[1, 1, 1])
+        self.resize = transforms.Resize(size=(cfg.DATA.W_CROP, cfg.DATA.H_CROP))  # ,interpolation=Image.NEAREST)
 
         root_data = cfg.DATA.DATA_ROOT
         car_only = cfg.DATA.CAR_ONLY
@@ -91,7 +102,8 @@ class ProviderDataset(Dataset):
                 self.prob_list = pickle.load(fp)
                 self.calib_list = pickle.load(fp)
                 if gen_image:
-                    self.image_list = pickle.load(fp)
+                    self.image_filename_list = pickle.load(fp)
+                    self.input_2d_list = pickle.load(fp)
         else:
             with open(overwritten_data_path, 'rb') as fp:
                 self.id_list = pickle.load(fp)
@@ -108,7 +120,8 @@ class ProviderDataset(Dataset):
                 #self.gt_box2d_list = pickle.load(fp)
                 self.calib_list = pickle.load(fp)
                 if gen_image:
-                    self.image_list = pickle.load(fp)
+                    self.image_filename_list = pickle.load(fp)
+                    self.input_2d_list = pickle.load(fp)
 
             if extend_from_det:
                 extend_det_file = overwritten_data_path.replace('.', '_det.')
@@ -166,18 +179,53 @@ class ProviderDataset(Dataset):
         # Get image
         if self.gen_image:
             # With whole Image(whole size, not region)
-            image = self.image_list[index]#(370, 1224, 3),uint8
-            xmin,ymin,xmax,ymax = box
-            image_crop =np.transpose(image, (2, 0, 1))[:, ymin:ymax, xmin:xmax]
-            h, w = image_crop.shape
+            import time
+            #tic = time.perf_counter()
+            image_filename = self.image_filename_list[index]
+            image = cv2.imread(image_filename)#(370, 1224, 3),uint8 or (375, 1242, 3)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            xmin,ymin,xmax,ymax = np.array(box,dtype=np.int32)
+            xmax += 1
+            ymax += 1
+            if xmin < 0 : xmin = 0
+            if ymin < 0 : ymin = 0
+            if xmax >= image.shape[1] : xmax = image.shape[1]
+            if ymax >= image.shape[0] : ymax = image.shape[0]
+            image_crop = image[ymin:ymax, xmin:xmax, :]#(34=h, 47=w, 3)
+
+            h = image_crop.shape[0]
+            w = image_crop.shape[1]
+            H = cfg.DATA.H_CROP
+            W = cfg.DATA.W_CROP
             P = self.calib_list[index]  # 3x4(kitti) or 3x3(nuscenes)
 
             # Query rgb point cloud
-            pts_2d = project_rect_to_image(point_set[:,3], P) #(n,2)
-            pts_2d[:,0] -= w
-            pts_2d[:,1] -= h
+            #pts_2d = project_rect_to_image(point_set[:,:3], P) #(n,2)
+            pts_2d = self.input_2d_list[index]
+            pts_2d[:,0] -= xmin
+            pts_2d[:,1] -= ymin
             pts_2d = np.array(pts_2d, dtype=np.int32)
-            query_v1 = pts_2d[:,0] * w + pts_2d[:,1]#vector that map ind_pc to ind_rgb
+
+            # resize RGB
+            #image_crop_rgbi = np.concatenate((image_crop, image_crop_indices),axis=2)#(34, 44, 4)
+            image_crop_pil = Image.fromarray(image_crop)
+            image_crop_resized = self.resize(image_crop_pil)
+            image_crop_resized = np.array(image_crop_resized)
+            image_crop_resized = np.transpose(image_crop_resized,(2, 0, 1))#(3, 300, 150),uint8
+            inv_h_scale = H / image_crop.shape[0]
+            inv_w_scale = W / image_crop.shape[1]
+
+            n_point = pts_2d.shape[0]
+            query_v1 = np.full(n_point,-1)
+            for i in range(n_point):
+                x, y = pts_2d[i,:]
+                newx = int(x*inv_w_scale)
+                newy = int(y*inv_h_scale)
+                if newx >= W: newx = W-1###
+                if newy >= H: newy = H-1###
+                #query_v1[i] = y * w + x
+                query_v1[i] = newy * W + newx###fix bug
+
 
         # Resample
         if self.npoints > 0:
@@ -189,6 +237,8 @@ class ProviderDataset(Dataset):
 
         point_set = point_set[choice, :]
 
+        if self.gen_image:
+            query_v1 = query_v1[choice]
 
         if type(self.calib_list[index])==dict:
             if 'P2' in self.calib_list[index].keys():
@@ -225,7 +275,7 @@ class ProviderDataset(Dataset):
                 data_inputs.update({'one_hot': torch.FloatTensor(one_hot_vec)})
 
             if self.gen_image:
-                data_inputs.update({'img': self.nrom(torch.FloatTensor(image_crop))})
+                data_inputs.update({'image': self.norm(torch.FloatTensor(image_crop_resized))})
                 data_inputs.update({'P': torch.FloatTensor(P)})
                 data_inputs.update({'query_v1': torch.LongTensor(query_v1)})
 
@@ -296,7 +346,7 @@ class ProviderDataset(Dataset):
             data_inputs.update({'one_hot': torch.FloatTensor(one_hot_vec)})
 
         if self.gen_image:
-            data_inputs.update({'img': self.nrom(torch.FloatTensor(image_crop))})
+            data_inputs.update({'image': self.norm(torch.FloatTensor(image_crop_resized))})
             data_inputs.update({'P': torch.FloatTensor(P)})
             data_inputs.update({'query_v1': torch.LongTensor(query_v1)})
 

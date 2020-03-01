@@ -166,6 +166,11 @@ class PointNetFeat(nn.Module):
         img3 = self.econv3(img2)
         img4 = self.econv4(img3)
 
+        img1 = torch.zeros(img1.shape).cuda()
+        img2 = torch.zeros(img2.shape).cuda()
+        img3 = torch.zeros(img3.shape).cuda()
+        img4 = torch.zeros(img4.shape).cuda()
+
         feat1 = self.pointnet1(pc, feat, pc1,  img1, P, query_v1,)
         feat1, _ = torch.max(feat1, -1)
 

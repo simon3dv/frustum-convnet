@@ -14,11 +14,11 @@ TRAIN:
   DATASET: train
 
 MODEL:
-  FILE: models/det_base.py
+  FILE: models/det_densefusion.py
   NUM_CLASSES: 2
 
 TEST:
-  WEIGHTS: pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
+  WEIGHTS: ''#pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
   FILE: kitti/data/pickle_data/frustum_caronly_val.pickle
   BATCH_SIZE: 32
   METHOD: nms
@@ -42,11 +42,12 @@ DATA:
   NUM_HEADING_BIN: 12
   USE_REFLECTION_AS_CHANNEL: False
   USE_RGB_AS_CHANNEL: False
-
+  W_CROP: 100
+  H_CROP: 60
 
 RESUME: False
 NUM_GPUS: 1
-OUTPUT_DIR: 'log/k2k/xyz'
+OUTPUT_DIR: 'output/trainsfer/k2k'
 SAVE_SUB_DIR: 'val_nms'
 USE_TFBOARD: True
 NUM_WORKERS: 4

@@ -46,7 +46,7 @@ DATA:
 
 RESUME: False
 NUM_GPUS: 1
-OUTPUT_DIR: 'log/k2k/xyz'
+OUTPUT_DIR: 'output/k2k/xyz'
 SAVE_SUB_DIR: 'val_nms'
 USE_TFBOARD: True
 NUM_WORKERS: 4

@@ -604,7 +604,7 @@ if __name__ == '__main__':
         losses, metrics = model(data_dicts_var)
         tic2 = time.perf_counter()
         t += (tic2 - tic)
-        print("Time:%.2fms" % (tic2))
+        print("Time:%.2fms" % (t))
         print()
         for key, value in losses.items():
             print(key, value)

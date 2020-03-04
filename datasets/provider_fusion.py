@@ -65,8 +65,8 @@ class ProviderDataset(Dataset):
         self._B_MEAN = 93.5843
         self.trancolor = transforms.ColorJitter(0.2, 0.2, 0.2, 0.05)
         self.add_noise = add_noise
-        self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        # self.norm = transforms.Normalize(mean=[self._R_MEAN, self._G_MEAN, self._B_MEAN], std=[1, 1, 1])
+        # self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        self.norm = transforms.Normalize(mean=[self._R_MEAN, self._G_MEAN, self._B_MEAN], std=[1, 1, 1])
         self.resize = transforms.Resize(size=(cfg.DATA.W_CROP, cfg.DATA.H_CROP))  # ,interpolation=Image.NEAREST)
 
         root_data = cfg.DATA.DATA_ROOT

@@ -14,7 +14,7 @@ TRAIN:
   DATASET: train
 
 MODEL:
-  FILE: models/det_densefusion.py
+  FILE: models/det_densefusion_plus.py
   NUM_CLASSES: 2
 
 TEST:

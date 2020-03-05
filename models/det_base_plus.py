@@ -13,10 +13,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-ROOT_DIR = os.path.dirname(BASE_DIR)
-sys.path.append(ROOT_DIR)
-
 from configs.config import cfg
 from datasets.dataset_info import KITTICategory
 
@@ -30,7 +26,6 @@ from ops.query_depth_point.query_depth_point import QueryDepthPoint
 from ops.pybind11.box_ops_cc import rbbox_iou_3d_pair
 from models.box_transform import size_decode, size_encode, center_decode, center_encode, angle_decode, angle_encode
 
-from models.pspnet import PSPNet
 
 NUM_SIZE_CLUSTER = len(KITTICategory.CLASSES)
 MEAN_SIZE_ARRAY = KITTICategory.MEAN_SIZE_ARRAY
@@ -43,7 +38,6 @@ class PointNetModule(nn.Module):
         self.dist = dist
         self.nsample = nsample
         self.use_xyz = use_xyz
-        self.mlp = mlp
 
         if Infea > 0:
             use_feature = True
@@ -61,13 +55,15 @@ class PointNetModule(nn.Module):
 
         self.conv2 = Conv2d(mlp[0], mlp[1], 1)
         self.conv3 = Conv2d(mlp[1], mlp[2], 1)
-        self.joint_conv1 = Conv2d(mlp[1]*2+mlp[0]*2,mlp[2],1)
 
-        init_params([self.conv1[0], self.conv2[0], self.conv3[0], self.joint_conv1[0]], 'kaiming_normal')
-        init_params([self.conv1[1], self.conv2[1], self.conv3[1], self.joint_conv1[1]], 1)
+        self.conv1_2 = Conv2d(mlp[1], mlp[1]*2, 1)
+        self.conv2_2 = Conv2d(mlp[1],mlp[1]*2, 1)
+        self.joint_conv1 = Conv2d(mlp[1] * 2 + mlp[0] * 2, mlp[2], 1)
 
-    def forward(self, pc, feat, new_pc=None,
-                img1=None, img2=None, P=None, query_v1=None):
+        init_params([self.conv1[0], self.conv2[0], self.conv3[0], self.conv1_2[0], self.conv2_2[0], self.joint_conv1[0]], 'kaiming_normal')
+        init_params([self.conv1[1], self.conv2[1], self.conv3[1], self.conv1_2[1], self.conv2_2[1], self.joint_conv1[1]], 1)
+
+    def forward(self, pc, feat, new_pc=None):
         batch_size = pc.size(0)
 
         npoint = new_pc.shape[2]
@@ -76,13 +72,6 @@ class PointNetModule(nn.Module):
         indices, num = self.query_depth_point(pc, new_pc)  # b*npoint*nsample
 
         assert indices.data.max() < pc.shape[2] and indices.data.min() >= 0
-
-        indices_rgb = torch.gather(query_v1, 1, indices.view(batch_size, npoint * k)) \
-            .view(batch_size, npoint, k)
-
-        assert indices_rgb.data.max() < img1.shape[2]*img1.shape[3]
-        assert indices_rgb.data.min() >= 0
-
         grouped_pc = None
         grouped_feature = None
 
@@ -102,44 +91,22 @@ class PointNetModule(nn.Module):
 
             # grouped_feature = torch.cat([new_feat.unsqueeze(3), grouped_feature], -1)
 
-        img1 = img1.view(batch_size,self.mlp[0],-1)
-        grouped_rgb1 = torch.gather(
-            img1, 2,
-            indices_rgb.view(batch_size, 1, npoint * k).expand(-1, self.mlp[0], -1)
-        ).view(batch_size, self.mlp[0], npoint, k)
-
-        grouped_rgb2 = None
-        if img2 is not None:
-            img2 = img2.view(batch_size,self.mlp[1],-1)
-            grouped_rgb2 = torch.gather(
-                img2, 2,
-                indices_rgb.view(batch_size, 1, npoint * k).expand(-1, self.mlp[1], -1)
-            ).view(batch_size, self.mlp[1], npoint, k)
-
         if self.use_feature and self.use_xyz:
             grouped_feature = torch.cat([grouped_pc, grouped_feature], 1)
         elif self.use_xyz:
             grouped_feature = grouped_pc.contiguous()
 
         grouped_feature = self.conv1(grouped_feature)
-        # mlp[0]+mlp[0]:
-        fusion_feature_1 = torch.cat([grouped_feature, grouped_rgb1], 1)
-
+        fusion_feature_1 = self.conv1_2(grouped_feature)
         grouped_feature = self.conv2(grouped_feature)
-
-        # mlp[1]+mlp[1]:
-        fusion_feature_2 = torch.cat([grouped_feature, grouped_rgb2], 1)
-
-        grouped_feature = self.conv3(grouped_feature)
-
+        fusion_feature_2 = self.conv2_2(grouped_feature)
         fusion_feature = torch.cat([fusion_feature_1, fusion_feature_2], 1)
-
         fusion_feature = self.joint_conv1(fusion_feature)
-
+        grouped_feature = self.conv3(grouped_feature)
+        grouped_feature = torch.cat([grouped_feature, fusion_feature], 1)
         # output, _ = torch.max(grouped_feature, -1)
 
         valid = (num > 0).view(batch_size, 1, -1, 1)
-        grouped_feature = torch.cat([grouped_feature, fusion_feature], 1)
         grouped_feature = grouped_feature * valid.float()
 
         return grouped_feature
@@ -165,38 +132,23 @@ class PointNetFeat(nn.Module):
         self.pointnet4 = PointNetModule(
             input_channel - 3, [256, 256, 512], u[3], 128, use_xyz=True, use_feature=True)
 
-        self.econv1 = Conv2d(32, 64, 1)
-        self.econv2 = Conv2d(64, 64, 1)
-        self.econv3 = Conv2d(64, 128, 1)
-        self.econv4 = Conv2d(128, 128, 1)
-        self.econv5 = Conv2d(128, 256, 1)
-        self.econv6 = Conv2d(256, 256, 1)
-
-    def forward(self, point_cloud, sample_pc, feat=None, one_hot_vec=None,
-                img=None, P=None, query_v1=None):
+    def forward(self, point_cloud, sample_pc, feat=None, one_hot_vec=None):
         pc = point_cloud
         pc1 = sample_pc[0]
         pc2 = sample_pc[1]
         pc3 = sample_pc[2]
         pc4 = sample_pc[3]
 
-        img1 = self.econv1(img)
-        img2 = self.econv2(img1)
-        img3 = self.econv3(img2)
-        img4 = self.econv4(img3)
-        img5 = self.econv5(img4)
-        img6 = self.econv6(img5)
-
-        feat1 = self.pointnet1(pc, feat, pc1,  img1, img2, P, query_v1,)
+        feat1 = self.pointnet1(pc, feat, pc1)
         feat1, _ = torch.max(feat1, -1)
 
-        feat2 = self.pointnet2(pc, feat, pc2,  img1, img2, P, query_v1,)
+        feat2 = self.pointnet2(pc, feat, pc2)
         feat2, _ = torch.max(feat2, -1)
 
-        feat3 = self.pointnet3(pc, feat, pc3,  img3, img4, P, query_v1,)
+        feat3 = self.pointnet3(pc, feat, pc3)
         feat3, _ = torch.max(feat3, -1)
 
-        feat4 = self.pointnet4(pc, feat, pc4,  img5, img6, P, query_v1,)
+        feat4 = self.pointnet4(pc, feat, pc4)
         feat4, _ = torch.max(feat4, -1)
 
         if one_hot_vec is not None:
@@ -305,8 +257,6 @@ class PointNetDet(nn.Module):
         self.cls_out.bias.data.zero_()
         self.reg_out.bias.data.zero_()
 
-        self.cnn = ModifiedResnet()
-
     def _slice_output(self, output):
 
         batch_size = output.shape[0]
@@ -382,12 +332,6 @@ class PointNetDet(nn.Module):
 
     def forward(self,
                 data_dicts):
-
-        image = data_dicts.get('image')
-        out_image = self.cnn(image)
-        P = data_dicts.get('P')
-        query_v1 = data_dicts.get('query_v1')
-
         point_cloud = data_dicts.get('point_cloud')
         one_hot_vec = data_dicts.get('one_hot')
         cls_label = data_dicts.get('label')
@@ -415,11 +359,7 @@ class PointNetDet(nn.Module):
             object_point_cloud_xyz,
             [center_ref1, center_ref2, center_ref3, center_ref4],
             object_point_cloud_i,
-            one_hot_vec,
-            out_image,
-            P,
-            query_v1
-        )
+            one_hot_vec)
 
         x = self.conv_net(feat1, feat2, feat3, feat4)
 
@@ -580,33 +520,11 @@ class PointNetDet(nn.Module):
 
         return losses, metrics
 
-psp_models = {
-    'resnet18': lambda: PSPNet(sizes=(1, 2, 3, 6), psp_size=512, deep_features_size=256, backend='resnet18'),
-    'resnet34': lambda: PSPNet(sizes=(1, 2, 3, 6), psp_size=512, deep_features_size=256, backend='resnet34'),
-    'resnet50': lambda: PSPNet(sizes=(1, 2, 3, 6), psp_size=2048, deep_features_size=1024, backend='resnet50'),
-    'resnet101': lambda: PSPNet(sizes=(1, 2, 3, 6), psp_size=2048, deep_features_size=1024, backend='resnet101'),
-    'resnet152': lambda: PSPNet(sizes=(1, 2, 3, 6), psp_size=2048, deep_features_size=1024, backend='resnet152')
-}
-
-class ModifiedResnet(nn.Module):
-
-    def __init__(self, usegpu=True):
-        super(ModifiedResnet, self).__init__()
-
-        self.model = psp_models['resnet18'.lower()]()
-        self.model = nn.DataParallel(self.model)
-
-    def forward(self, x):
-        x = self.model(x)
-        return x
-
-
 if __name__ == '__main__':
-    from datasets.provider_fusion import ProviderDataset
+    from datasets.provider_da import ProviderDataset
     dataset = ProviderDataset(npoints=1024, split='val',
         random_flip=True, random_shift=True, one_hot=True,
-        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_wimage_val.pickle',
-        gen_image=True)
+        overwritten_data_path='kitti/data/pickle_data/frustum_caronly_val.pickle')
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False,
                             num_workers=4, pin_memory=True)
     model = PointNetDet(3, num_vec=0, num_classes=2).cuda()
@@ -617,14 +535,14 @@ if __name__ == '__main__':
         # 'ref_label', 'center_ref1', 'center_ref2', 'center_ref3', 'center_ref4',
         # 'size_class', 'box3d_size', 'box3d_heading', 'image', 'P', 'query_v1'])
         tic = time.perf_counter()
-        losses, metrics= model(data_dicts_var)
+        losses, metrics = model(data_dicts_var)
         tic2 = time.perf_counter()
-        t += (tic2-tic)
-        print("Time:%.2fms"%(t))
+        t += (tic2 - tic)
+        print("Time:%.2fms" % (t))
         print()
-        for key,value in losses.items():
-            print(key,value)
+        for key, value in losses.items():
+            print(key, value)
         print()
-        for key,value in metrics.items():
-            print(key,value)
-    print("Avr Time:%.2fms"%(t/len(dataset)))
+        for key, value in metrics.items():
+            print(key, value)
+    print("Avr Time:%.2fms" % (t / len(dataset)))

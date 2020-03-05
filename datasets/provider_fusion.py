@@ -48,7 +48,7 @@ class ProviderDataset(Dataset):
                  overwritten_data_path='',
                  extend_from_det=False,
                  gen_image=True,
-                 add_noise=False):
+                 add_noise=True):
 
         super(ProviderDataset, self).__init__()
         self.npoints = npoints

@@ -58,7 +58,6 @@ class Object3d(object):
 
         return output_str
 
-
 class Calibration(object):
     ''' Calibration matrices and utils
         3d XYZ in <label>.txt are in rect camera coord.

@@ -26,7 +26,7 @@ from kitti_object import kitti_object
 from draw_util import get_lidar_in_image_fov
 
 from ops.pybind11.rbbox_iou import bbox_overlaps_2d
-
+from kitti_fv_util import keep_32
 
 def in_hull(p, hull):
     from scipy.spatial import Delaunay
@@ -301,6 +301,7 @@ def extract_frustum_data(idx_filename, split, output_filename,
         calib = dataset.get_calibration(data_idx)  # 3 by 4 matrix
         objects = dataset.get_label_objects(data_idx)
         pc_velo = dataset.get_lidar(data_idx)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1/2)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
         pc_rect[:, 3] = pc_velo[:, 3]
@@ -604,12 +605,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gen_train', action='store_true',
                         help='Generate train split frustum data with perturbed GT 2D boxes')
-
     parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
-
     parser.add_argument('--gen_val_rgb_detection', action='store_true',
                         help='Generate val split frustum data with RGB detection 2D boxes')
-
     parser.add_argument('--car_only', action='store_true', help='Only generate cars')
     parser.add_argument('--people_only', action='store_true', help='Only generate peds and cycs')
     parser.add_argument('--save_dir', default=None, type=str, help='data directory to save data')
@@ -642,7 +640,7 @@ if __name__ == '__main__':
         extract_frustum_data(
             os.path.join(BASE_DIR, 'image_sets/train.txt'),
             'training',
-            os.path.join(save_dir, output_prefix + 'train.pickle'),
+            os.path.join(save_dir, output_prefix + 'train_32scan.pickle'),
             perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist)
 
@@ -650,7 +648,7 @@ if __name__ == '__main__':
         extract_frustum_data(
             os.path.join(BASE_DIR, 'image_sets/val.txt'),
             'training',
-            os.path.join(save_dir, output_prefix + 'val.pickle'),
+            os.path.join(save_dir, output_prefix + 'val_32scan.pickle'),
             perturb_box2d=False, augmentX=1,
             type_whitelist=type_whitelist)
 

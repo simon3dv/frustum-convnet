@@ -202,3 +202,4 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height,showtime=Fals
             2, color=tuple(color), thickness=-1)
     Image.fromarray(img).show()
     return img
+

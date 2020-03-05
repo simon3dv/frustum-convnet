@@ -14,12 +14,12 @@ TRAIN:
   DATASET: train
 
 MODEL:
-  FILE: models/det_base_plus.py
+  FILE: models/det_base.py
   NUM_CLASSES: 2
 
 TEST:
   WEIGHTS: ''#pretrained_models/car/model_0050.pth #log/fconvnet_kitti_caronly/acc0.862-epoch020.pth
-  FILE: kitti/data/pickle_data/frustum_caronly_val.pickle
+  FILE: kitti/data/pickle_data/frustum_caronly_val_32scan.pickle
   BATCH_SIZE: 32
   METHOD: nms
   NUM_POINT: 1024
@@ -46,7 +46,7 @@ DATA:
 
 RESUME: False
 NUM_GPUS: 1
-OUTPUT_DIR: 'output/da/k2k_plus'
+OUTPUT_DIR: 'output/da/kitti_only/k642k32'
 SAVE_SUB_DIR: 'val_nms'
 USE_TFBOARD: True
 NUM_WORKERS: 4

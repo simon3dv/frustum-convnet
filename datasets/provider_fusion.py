@@ -47,7 +47,8 @@ class ProviderDataset(Dataset):
                  from_rgb_detection=False,
                  overwritten_data_path='',
                  extend_from_det=False,
-                 gen_image=True, add_noise=True):
+                 gen_image=True,
+                 add_noise=False):
 
         super(ProviderDataset, self).__init__()
         self.npoints = npoints
@@ -59,14 +60,14 @@ class ProviderDataset(Dataset):
         self.from_rgb_detection = from_rgb_detection
 
         self.gen_image = gen_image
-
-        self._R_MEAN = 92.8403
-        self._G_MEAN = 97.7996
-        self._B_MEAN = 93.5843
-        self.trancolor = transforms.ColorJitter(0.2, 0.2, 0.2, 0.05)
         self.add_noise = add_noise
+        #self._R_MEAN = 92.8403
+        #self._G_MEAN = 97.7996
+        #self._B_MEAN = 93.5843
+        self.trancolor = transforms.ColorJitter(0.2, 0.2, 0.2, 0.05)
         self.norm = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-        # self.norm = transforms.Normalize(mean=[self._R_MEAN, self._G_MEAN, self._B_MEAN], std=[1, 1, 1])
+
+        #self.norm = transforms.Normalize(mean=[self._R_MEAN, self._G_MEAN, self._B_MEAN], std=[1, 1, 1])
         self.resize = transforms.Resize(size=(cfg.DATA.W_CROP, cfg.DATA.H_CROP))  # ,interpolation=Image.NEAREST)
 
         root_data = cfg.DATA.DATA_ROOT
@@ -184,8 +185,12 @@ class ProviderDataset(Dataset):
             import time
             #tic = time.perf_counter()
             image_filename = self.image_filename_list[index]
-            image = cv2.imread(image_filename)#(370, 1224, 3),uint8 or (375, 1242, 3)
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            #image = cv2.imread(image_filename)#(370, 1224, 3),uint8 or (375, 1242, 3)
+            #image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            image = Image.open(image_filename)
+            if self.add_noise:
+                image = self.trancolor(image)
+            image = np.array(image)
             xmin,ymin,xmax,ymax = np.array(box,dtype=np.int32)
             xmax += 1
             ymax += 1
@@ -211,8 +216,6 @@ class ProviderDataset(Dataset):
             # resize RGB
             #image_crop_rgbi = np.concatenate((image_crop, image_crop_indices),axis=2)#(34, 44, 4)
             image_crop_pil = Image.fromarray(image_crop)
-            if self.add_noise:
-                image_crop_pil = self.trancolor(image_crop_pil)
             image_crop_resized = self.resize(image_crop_pil)
             image_crop_resized = np.array(image_crop_resized)
             image_crop_resized = np.transpose(image_crop_resized,(2, 0, 1))#(3, 300, 150),uint8

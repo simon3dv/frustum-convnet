@@ -278,7 +278,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
             image_filename = os.path.join(dataset.image_dir, '%06d.png'%(data_idx))#dataset.get_image(data_idx)#(370, 1224, 3),uint8
         objects = dataset.get_label_objects(data_idx)
         pc_velo = dataset.get_lidar(data_idx)
-        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 4)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
         pc_rect[:,3] = pc_velo[:,3]

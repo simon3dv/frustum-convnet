@@ -23,7 +23,7 @@ import ipdb
 from tqdm import tqdm
 
 def add_noise(pc,scale=0.0005):
-    dist = np.sqrt(np.sum(pc[:,0]**2+pc[:,1]**2+pc[:,2]**2))
+    dist = np.sqrt(pc[:,0]**2+pc[:,1]**2+pc[:,2]**2)
     shiftx = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)
     shifty = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)
     shiftz = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)

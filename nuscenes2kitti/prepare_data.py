@@ -623,7 +623,7 @@ def get_box3d_dim_statistics(idx_filename):
 
 def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train', sensor='CAM_FRONT'):
     ''' Collect and dump 3D bounding box statistics '''
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR,'data/nuScenes2KITTI'))
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR,'data/nuScenes2KITTI'), split=split)
 
     dimension_list = []
     type_list = []

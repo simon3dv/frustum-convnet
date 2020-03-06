@@ -413,7 +413,7 @@ def get_box3d_dim_statistics(idx_filename, type_whitelist=['Car','Pedestrian','C
             with open(os.path.join(BASE_DIR, split + '_' + type + '_' + 'box3d_mean_dimensions_32scan.pickle'), 'wb') as fp:
                 pickle.dump(dimensions_mean, fp)
 
-def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train'):
+def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train', keep_scale=1/4):
     ''' Collect and dump 3D bounding box statistics '''
     dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'))
 
@@ -422,11 +422,12 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     ry_list = []
     mean_t_list = []
     mean_t_by_center_list = []
-    mnp_list = []
+    npoints_list = []
     data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
     for data_idx in tqdm(data_idx_list):
         calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
         pc_velo = dataset.get_lidar(data_idx)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
         pc_rect = calib.project_velo_to_rect(pc_velo[:, 0:3])
         objects = dataset.get_label_objects(data_idx)
         for obj_idx in range(len(objects)):
@@ -442,17 +443,18 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
             mean_t_list.append(pts_in_box3d.mean(0))
             pts_in_box3d -= obj.t
             mean_t_by_center_list.append(pts_in_box3d.mean(0))
-            mnp_list.append(pts_in_box3d.shape[0])
+            npoints_list.append(pts_in_box3d.shape[0])
 
     dimensions = np.array(dimension_list)
     mts = np.array(mean_t_list)
     rys = np.array(ry_list)
     mtbcs = np.array(mean_t_by_center_list)
+    npoints = np.array(npoints_list)
     md = dimensions.mean(0)
     mmt = mts.mean(0)
     mry = rys.mean()
     mmtbcs = mtbcs.mean(0)
-    mnp = mnp_list.mean()
+    mnp = npoints.mean()
     print('Average npoints in 3d box: %.1f' % mnp)
     print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))
     print('mean points related to box center: (%.1f,%.1f,%.1f)' % (mmtbcs[0], mmtbcs[1], mmtbcs[2]))
@@ -655,6 +657,8 @@ if __name__=='__main__':
                         help='data_idx for demo.')
     parser.add_argument('--obj_idx', type=int, default=0,
                         help='obj_idx for demo.')
+    parser.add_argument('--keep_scale', type=float, default=1/4,
+                        help='keep_scale')
     parser.add_argument('--cluster', action='store_true', help='Run cluster.')
     parser.add_argument('--gen_train', action='store_true', help='Generate train split frustum data with perturbed GT 2D boxes')
     parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
@@ -681,13 +685,13 @@ if __name__=='__main__':
         exit()
     if args.show_stats:
         imagesets_file = os.path.join(BASE_DIR, 'image_sets/train.txt')
-        print_box3d_statistics(imagesets_file, type_whitelist, 'train')
+        print_box3d_statistics(imagesets_file, type_whitelist, 'train',keep_scale=args.keep_scale)
     if args.demo_object:
-        demo_object(data_idx=args.data_idx, object_idx=args.obj_idx)
+        demo_object(data_idx=args.data_idx, object_idx=args.obj_idx,keep_scale=args.keep_scale)
     if args.demo:
         demo(data_idx=args.data_idx, object_idx=args.obj_idx, show_images=True, show_lidar=True,
              show_lidar_2d=True, show_lidar_box=True,
-             show_project=True, show_lidar_frustum=True)  # draw 2d box and 3d box
+             show_project=True, show_lidar_frustum=True,keep_scale=args.keep_scale)  # draw 2d box and 3d box
         """
         demo(data_idx=args.data_idx, object_idx=args.obj_idx, show_images=True, show_lidar=False,
              show_lidar_2d=False, show_lidar_box=True,
@@ -704,8 +708,8 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, output_prefix + 'mini.pickle'),
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
-            with_image=args.with_image)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist, 'train')
+            with_image=args.with_image,keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist, 'train',keep_scale=args.keep_scale)
 
     if args.gen_train:
         print('Start gen_train...')
@@ -716,8 +720,8 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'train_32scan.pickle'),
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
-            with_image=args.with_image)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist,'train')
+            with_image=args.with_image,keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist,'train',keep_scale=args.keep_scale)
 
     if args.gen_val:
         print('Start gen_val...')
@@ -728,8 +732,8 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'val_32scan.pickle'),
             viz=False, perturb_box2d=False, augmentX=1,
             type_whitelist=type_whitelist,
-            with_image=args.with_image)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist,'val')
+            with_image=args.with_image,keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist,'val',keep_scale=args.keep_scale)
 
     if args.gen_val_rgb_detection:
         print('Start gen_val_rgb_detection...')
@@ -738,4 +742,4 @@ if __name__=='__main__':
             'training',
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'val_rgb_detection_32scan.pickle'),
             viz=False,
-            type_whitelist=type_whitelist)
+            type_whitelist=type_whitelist,keep_scale=args.keep_scale)

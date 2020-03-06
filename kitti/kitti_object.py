@@ -137,7 +137,8 @@ def return_image_with_boxes(img, objects, calib, show3d=True):
     img1 = np.copy(img) # for 2d bbox
     img2 = np.copy(img) # for 3d bbox
     for obj in objects:
-        if obj.type=='DontCare':continue
+        if obj.type == 'DontCare':continue
+        if obj.type != 'Car': continue
         cv2.rectangle(img1, (int(obj.xmin),int(obj.ymin)),
             (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
         box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
@@ -332,5 +333,5 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
 if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
-    #dataset_viz()
-    dataset_viz_pred('test_results_seg_score_max/data',pred_only=False,name='_seg_score_max')
+    dataset_viz()
+    #dataset_viz_pred('test_results_seg_score_max/data',pred_only=False,name='_seg_score_max')

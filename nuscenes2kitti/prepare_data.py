@@ -346,31 +346,31 @@ def demo(data_idx=0,obj_idx=-1):
     ##pc_rect = calib.project_velo_to_rect(pc_velo)
     #fig = draw_lidar_simple(pc_velo)
     show_lidar_with_boxes(pc_velo, objects, calib, sensor, False, img_width, img_height)
-    raw_input()
+    input()
 
 
     # 2.Draw frustum lidar with boxes in LIDAR_TOP coord
     print(' -------- LiDAR points and 3D boxes in velodyne coordinate --------')
     #show_lidar_with_boxes(pc_velo, objects, calib)
     show_lidar_with_boxes(pc_velo.copy(), objects, calib, sensor, True, img_width, img_height)
-    raw_input()
+    input()
 
 
     # 3.Draw 2d and 3d boxes on CAM_FRONT image
     print(' -------- 2D/3D bounding boxes in images --------')
     show_image_with_boxes(img, objects, calib, sensor)
-    raw_input()
+    input()
 
 
     print(' -------- render LiDAR points (and 3D boxes) in LIDAR_TOP coordinate --------')
     render_lidar_bev(pc_velo, objects, calib, sensor)
-    raw_input()
+    input()
 
 
     # Visualize LiDAR points on images
     print(' -------- LiDAR points projected to image plane --------')
     show_lidar_on_image(pc_velo, img.copy(), calib, sensor, img_width, img_height)#pc_velo:(n,3)
-    raw_input()
+    input()
 
 
     # Show LiDAR points that are in the 3d box
@@ -386,7 +386,7 @@ def demo(data_idx=0,obj_idx=-1):
         utils.draw_nusc_lidar(box3droi_pc_velo, fig=fig)
         draw_gt_boxes3d([box3d_pts_3d_velo.T], fig=fig)
         mlab.show(1)
-        raw_input()
+        input()
 
 
     # UVDepth Image and its backprojection to point clouds
@@ -433,7 +433,7 @@ def demo(data_idx=0,obj_idx=-1):
     fig = mlab.figure(figure=None, bgcolor=(0,0,0),
         fgcolor=None, engine=None, size=(1000, 500))
     utils.draw_nusc_lidar(backprojected_pc_velo, fig=fig)
-    raw_input()
+    input()
 
 
     # Only display those points that fall into 2d box
@@ -448,7 +448,7 @@ def demo(data_idx=0,obj_idx=-1):
         fgcolor=None, engine=None, size=(1000, 500))
     utils.draw_nusc_lidar(boxfov_pc_velo, fig=fig)
     mlab.show(1)
-    raw_input()
+    input()
 
 def random_shift_box2d(box2d, shift_ratio=0.1):
     ''' Randomly shift box center, randomly scale width and height
@@ -614,7 +614,7 @@ def extract_frustum_data(idx_filename, split, sensor, output_filename, viz=False
                               fgcolor=None, engine=None, size=(500, 500))
             mlab.points3d(p1[:, 2], -p1[:, 0], -p1[:, 1], seg, mode='point',
                           colormap='gnuplot', scale_factor=1, figure=fig)
-            raw_input()
+            input()
 
 
 def get_box3d_dim_statistics(idx_filename):

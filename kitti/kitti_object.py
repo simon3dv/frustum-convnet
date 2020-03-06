@@ -239,11 +239,42 @@ def show_lidar_on_image(pc_velo, img, calib, img_width, img_height,showtime=Fals
     Image.fromarray(img).show()
     return img
 
-def dataset_viz(name = ''):
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'))
+def dataset_export_2d_crop(name = ''):
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'))
     split = 'training'
-    save2ddir = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis2d' + name)
-    save3ddir = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis3d' + name)
+    save2ddir = os.path.join(ROOT_DIR, 'data/kitti',split,'vis2d_crop' + name)
+    if os.path.isdir(save2ddir) == True:
+        print('previous save2ddir found. deleting...')
+        shutil.rmtree(save2ddir)
+    os.makedirs(save2ddir)
+
+    n_obj = 0
+    for data_idx in range(len(dataset)):
+        # Load data from dataset
+        objects = dataset.get_label_objects(data_idx)
+        objects[0].print_object()
+        img = dataset.get_image(data_idx)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_height, img_width, img_channel = img.shape
+        print(('Image shape: ', img.shape))
+        #pc_velo = dataset.get_lidar(data_idx)[:,0:3]
+        calib = dataset.get_calibration(data_idx)
+
+        # Draw 2d and 3d boxes on image
+        # show_image_with_boxes(img, objects, calib, False)
+        for obj in objects:
+            if obj.type == 'DontCare': continue
+            if obj.type != 'Car': continue
+            image_crop = img[int(obj.ymin):int(obj.ymax),int(obj.xmin):int(obj.xmax),:]
+            if len(image_crop)>20:
+                cv2.imwrite(os.path.join(save2ddir, str(n_obj).zfill(6) + '.png'), image_crop)
+                n_obj += 1
+
+def dataset_viz(name = ''):
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'))
+    split = 'training'
+    save2ddir = os.path.join(ROOT_DIR, 'data/kitti',split,'vis2d' + name)
+    save3ddir = os.path.join(ROOT_DIR, 'data/kitti',split,'vis3d' + name)
     if os.path.isdir(save2ddir) == True:
         print('previous save2ddir found. deleting...')
         shutil.rmtree(save2ddir)
@@ -275,12 +306,12 @@ def dataset_viz(name = ''):
         # input()
 
 def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
-    dataset = kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'))
+    dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'))
     split = 'training'
-    save2ddir = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis2d')
-    save3ddir = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis3d')
-    save2ddir_pred = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis2d_pred' + name)
-    save3ddir_pred = os.path.join(ROOT_DIR, 'dataset/KITTI/object',split,'vis3d_pred' + name)
+    save2ddir = os.path.join(ROOT_DIR, 'data/kitti',split,'vis2d')
+    save3ddir = os.path.join(ROOT_DIR, 'data/kitti',split,'vis3d')
+    save2ddir_pred = os.path.join(ROOT_DIR, 'data/kitti',split,'vis2d_pred' + name)
+    save3ddir_pred = os.path.join(ROOT_DIR, 'data/kitti',split,'vis3d_pred' + name)
     if os.path.isdir(save2ddir) == True:
         print('previous save2ddir found. deleting...')
         shutil.rmtree(save2ddir)
@@ -333,5 +364,6 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
 if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
-    dataset_viz()
+    #dataset_viz()
     #dataset_viz_pred('test_results_seg_score_max/data',pred_only=False,name='_seg_score_max')
+    dataset_export_2d_crop()

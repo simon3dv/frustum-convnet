@@ -11,6 +11,7 @@ import sys
 import numpy as np
 import cv2
 from PIL import Image
+import shutil
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 sys.path.append(os.path.join(ROOT_DIR, 'mayavi'))
@@ -19,11 +20,7 @@ import ipdb
 from pyquaternion import Quaternion
 import mayavi.mlab as mlab
 import matplotlib.pyplot as plt
-try:
-    raw_input          # Python 2
-except NameError:
-    raw_input = input  # Python 3
-
+from tqdm import tqdm
 
 class nuscenes2kitti_object(object):
     '''Load and parse object data into a usable format.'''
@@ -133,6 +130,41 @@ def render_objects(img, objects, view=np.eye(4), colors = ((0, 0, 255), (255, 0,
                  (int(center_bottom[0]), int(center_bottom[1])),
                  (int(center_bottom_forward[0]), int(center_bottom_forward[1])),
                  colors[0][::-1], linewidth)
+
+def dataset_export_2d_crop(name = '',split='v1.0-mini',sensor='CAM_FRONT'):
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'),split=split)
+    save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis','vis2d_crop' + name)
+    if os.path.isdir(save2ddir) == True:
+        print('previous save2ddir found. deleting...')
+        shutil.rmtree(save2ddir)
+    os.makedirs(save2ddir)
+
+    n_obj = 0
+    for data_idx in tqdm(range(len(dataset))):
+        # Load data from dataset
+        objects = dataset.get_label_objects(sensor, data_idx)
+        #objects[0].print_object()
+        img = dataset.get_image(sensor, data_idx)
+        #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img_height, img_width, img_channel = img.shape
+        # print(('Image shape: ', img.shape))
+        #pc_velo = dataset.get_lidar(data_idx)[:,0:3]
+
+        # Draw 2d and 3d boxes on image
+        # show_image_with_boxes(img, objects, calib, False)
+        for obj in objects:
+            if obj.type == 'DontCare': continue
+            if obj.type != 'Car': continue
+            if obj.t[2] < 0: continue
+            xmin = int(obj.xmin) if obj.xmin>0 else 0
+            ymin = int(obj.ymin) if obj.ymin>0 else 0
+            xmax = int(obj.xmax) if obj.xmax<1600 else 1599
+            ymax = int(obj.ymax) if obj.ymax<900 else 899
+            #obj.print_object()
+            image_crop = img[ymin:ymax,xmin:xmax,:]
+            if len(image_crop)>20:
+                cv2.imwrite(os.path.join(save2ddir, str(n_obj).zfill(6) + '.png'), image_crop)
+                n_obj += 1
 
 def show_image_with_boxes(img, objects, calib, sensor, show3d=True,linewidth=2,colors = ((0, 0, 255), (255, 0, 0), (155, 155, 155))):
     ''' Show image with 2D bounding boxes '''
@@ -400,12 +432,13 @@ def dataset_viz():
         sensor = 'CAM_FRONT'
         # Draw 2d and 3d boxes on image
         show_image_with_boxes(img, objects, calib, sensor, False)
-        raw_input()
+        input()
         # Show all LiDAR points. Draw 3d box in LiDAR point cloud
         show_lidar_with_boxes(pc_velo, objects, calib, sensor, True, img_width, img_height)
-        raw_input()
+        input()
 
 if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_gt_boxes3d
-    dataset_viz()
+    # dataset_viz()
+    dataset_export_2d_crop()

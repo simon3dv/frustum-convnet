@@ -20,7 +20,6 @@ import shutil
 import matplotlib.pyplot as plt
 import glob
 import time
-
 def in_hull(p, hull):
     from scipy.spatial import Delaunay
     if not isinstance(hull, Delaunay):
@@ -101,7 +100,7 @@ def draw_gt_boxes3d(gt_boxes3d, fig, color=(1,1,1), line_width=1, draw_text=True
 def vis_label(split='v1.0-mini',sensor_list=['CAM_FRONT'],type_whitelist=['Car']):
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple  # , draw_gt_boxes3d
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI'), split=split)
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'), split=split)
     type2color = {}
     for i,x in enumerate(type_whitelist):
         type2color[x] = i
@@ -131,8 +130,8 @@ def vis_label(split='v1.0-mini',sensor_list=['CAM_FRONT'],type_whitelist=['Car']
             ...
     '''
     for present_sensor in sensor_list:
-        save2ddir = os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI', split, 'vis_label', 'vis2d_' + present_sensor)
-        save3ddir = os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI', split, 'vis_label', 'vis3d_' + present_sensor)
+        save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI', split, 'vis_label', 'vis2d_' + present_sensor)
+        save3ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI', split, 'vis_label', 'vis3d_' + present_sensor)
         if os.path.isdir(save2ddir) == True:
             print('previous save2ddir found. deleting...')
             shutil.rmtree(save2ddir)
@@ -204,7 +203,7 @@ def vis_label(split='v1.0-mini',sensor_list=['CAM_FRONT'],type_whitelist=['Car']
 def vis_pred(split='training', sensor_list = ['CAM_FRONT'], type_whitelist=['Car'], vis_pred_path=None):
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple  # , draw_gt_boxes3d
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI'), split=split)
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'), split=split)
     type2color = {}
     for i,x in enumerate(type_whitelist):
         type2color[x] = i
@@ -234,8 +233,8 @@ def vis_pred(split='training', sensor_list = ['CAM_FRONT'], type_whitelist=['Car
             ...
     '''
     for present_sensor in sensor_list:
-        save2ddir = os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI', split, 'vis_pred', 'vis2d_' + present_sensor)
-        save3ddir = os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI', split, 'vis_pred', 'vis3d_' + present_sensor)
+        save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI', split, 'vis_pred', 'vis2d_' + present_sensor)
+        save3ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI', split, 'vis_pred', 'vis3d_' + present_sensor)
         if os.path.isdir(save2ddir) == True:
             print('previous save2ddir found. deleting...')
             shutil.rmtree(save2ddir)
@@ -312,7 +311,7 @@ def demo(data_idx=0,obj_idx=-1):
     sensor = 'CAM_FRONT'
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_gt_boxes3d
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'dataset/nuScenes2KITTI'))
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'))
 
     # Load data from dataset
     objects = dataset.get_label_objects(sensor, data_idx)  # objects = [Object3d(line) for line in lines]
@@ -622,11 +621,59 @@ def get_box3d_dim_statistics(idx_filename):
     ''' Collect and dump 3D bounding box statistics '''
     pass
 
+def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train', sensor='CAM_FRONT'):
+    ''' Collect and dump 3D bounding box statistics '''
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR,'data/nuScenes2KITTI'))
+
+    dimension_list = []
+    type_list = []
+    ry_list = []
+    mean_t_list = []
+    mean_t_by_center_list = []
+    npoints_list = []
+    data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
+    for data_idx in tqdm(data_idx_list):
+        calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
+        pc_velo = dataset.get_lidar(data_idx)
+        pc_global = calib.project_lidar_to_global(pc_velo[:, 0:3].T)
+        pc_rect = calib.project_global_to_cam(pc_global, sensor).T
+        objects = dataset.get_label_objects(sensor, data_idx)
+        for obj_idx in range(len(objects)):
+            obj = objects[obj_idx]
+            if obj.type not in type_whitelist:continue
+            dimension_list.append(np.array([obj.l,obj.w,obj.h]))
+            type_list.append(obj.type)
+            ry_list.append(obj.ry)
+
+            box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(objects[obj_idx], getattr(calib,sensor))
+            pts_in_box3d, _ = extract_pc_in_box3d(pc_rect, box3d_pts_3d)
+            if len(pts_in_box3d) == 0: continue
+            mean_t_list.append(pts_in_box3d.mean(0))
+            pts_in_box3d -= obj.t
+            mean_t_by_center_list.append(pts_in_box3d.mean(0))
+            npoints_list.append(pts_in_box3d.shape[0])
+
+    dimensions = np.array(dimension_list)
+    mts = np.array(mean_t_list)
+    rys = np.array(ry_list)
+    mtbcs = np.array(mean_t_by_center_list)
+    npoints = np.array(npoints_list)
+    md = dimensions.mean(0)
+    mmt = mts.mean(0)
+    mry = rys.mean()
+    mmtbcs = mtbcs.mean(0)
+    mnp = npoints.mean()
+    print('Average npoints in 3d box: %.1f' % mnp)
+    print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))
+    print('mean points related to box center: (%.1f,%.1f,%.1f)' % (mmtbcs[0], mmtbcs[1], mmtbcs[2]))
+    print('mean size: (%.1f,%.1f,%.1f)' % (md[0],md[1],md[2]))
+    print('mean ry: (%.2f)' % (mry))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--demo', action='store_true',
                         help='Run demo.')
+    parser.add_argument('--show_stats', action='store_true', help='show_stats.')
     parser.add_argument('--data_idx', type=int, default=0,
                         help='data_idx for demo.')
     parser.add_argument('--obj_idx', type=int, default=-1,
@@ -678,6 +725,10 @@ if __name__ == '__main__':
         sensor_list = ['CAM_FRONT']
     else:
         sensor_list = ['CAM_FRONT', 'CAM_BACK', 'CAM_FRONT_LEFT', 'CAM_BACK_LEFT', 'CAM_FRONT_RIGHT', 'CAM_BACK_RIGHT']
+
+    if args.show_stats:
+        imagesets_file = os.path.join(BASE_DIR, 'image_sets/v1.0-trainval.txt')
+        print_box3d_statistics(imagesets_file, type_whitelist, 'v1.0-trainval')
 
     if args.demo:
         demo(args.data_idx,args.obj_idx)

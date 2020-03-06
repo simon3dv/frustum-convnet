@@ -66,7 +66,7 @@ class PointNetModule(nn.Module):
 
 
         init_params([self.conv1[0], self.conv2[0], self.conv3[0], self.econv1[0]], 'kaiming_normal')
-        init_params([self.conv1[1], self.conv2[1], self.conv3[1], self.econv2[1]], 1)
+        init_params([self.conv1[1], self.conv2[1], self.conv3[1], self.econv1[1]], 1)
 
     def forward(self, pc, feat, new_pc=None,
                 img=None, P=None, query_v1=None):

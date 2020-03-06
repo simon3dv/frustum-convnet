@@ -59,6 +59,7 @@ def write_array_to_file(output_f,name,array):
 def clip(x,min,max):
     if x < min: x = min
     if x > max: x = max-1
+    return x
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

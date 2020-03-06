@@ -189,8 +189,8 @@ if __name__ == '__main__':
                             top_2d = clip(int(min(points_2d[1])),0,900)
                             right_2d = clip(int(max(points_2d[0])),0,1600)
                             bottom_2d = clip(int(max(points_2d[1])),0,900)
-                            if right_2d - left_2d < 20: continue
-                            if bottom_2d - top_2d < 20: continue
+                            if right_2d - left_2d < 25: continue #Car
+                            if bottom_2d - top_2d < 25: continue
 
                             # save labels
                             line = "{} {} {} {} {} {} {} {} {} {} {} {} {} {} {}\n".format(

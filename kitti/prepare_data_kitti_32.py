@@ -22,6 +22,23 @@ import argparse
 import ipdb
 from tqdm import tqdm
 
+def add_noise(pc,scale=0.0005):
+    dist = np.sqrt(np.sum(pc[:,0]**2+pc[:,1]**2+pc[:,2]**2))
+    shiftx = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)
+    shifty = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)
+    shiftz = np.clip(np.random.randn() * dist * scale, -dist * scale, dist * scale)
+    pc[:, 0] += shiftx
+    pc[:, 1] += shifty
+    pc[:, 2] += shiftz
+    return pc
+    """
+        l, w, h = self.size_list[index]
+        dist = np.sqrt(np.sum(l ** 2 + w ** 2))
+        shift = np.clip(np.random.randn() * dist * 0.2, -0.5 * dist, 0.5 * dist)
+        shift = np.clip(shift + box3d_center[2], 0, 70) - box3d_center[2]
+        point_set[:, 2] += shift
+        box3d_center[2] += shift
+    """
 def in_hull(p, hull):
     from scipy.spatial import Delaunay
     if not isinstance(hull,Delaunay):
@@ -107,7 +124,7 @@ def demo_object(data_idx=11,object_idx=0,keep_scale=1/4):
     draw_gt_boxes3d([box3d_pts_3d], fig=fig, draw_text=False)
     input()
 
-def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d=True,show_lidar_box=True,show_project=True,show_lidar_frustum=True,keep_scale=1/4):
+def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d=True,show_lidar_box=True,show_project=True,show_lidar_frustum=True,keep_scale=1/4, noise_scale=0.0):
     import mayavi.mlab as mlab
     from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'))
@@ -139,6 +156,8 @@ def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d
     print(('Image shape: ', img.shape))
     pc_velo = dataset.get_lidar(data_idx)[:,0:3]#(115384, 3)
     pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
+    if noise_scale >= 1e-7:
+        pc_velo = add_noise(pc_velo,scale=noise_scale)
     calib = dataset.get_calibration(data_idx)#utils.Calibration(calib_filename)
 
     ## Draw lidar in rect camera coord
@@ -659,6 +678,8 @@ if __name__=='__main__':
                         help='obj_idx for demo.')
     parser.add_argument('--keep_scale', type=float, default=1/4,
                         help='keep_scale')
+    parser.add_argument('--noise_scale', type=float, default=0.0,
+                        help='noise_scale')
     parser.add_argument('--cluster', action='store_true', help='Run cluster.')
     parser.add_argument('--gen_train', action='store_true', help='Generate train split frustum data with perturbed GT 2D boxes')
     parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
@@ -709,7 +730,7 @@ if __name__=='__main__':
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
             with_image=args.with_image,keep_scale=args.keep_scale)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist, 'train',keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist, 'train')
 
     if args.gen_train:
         print('Start gen_train...')
@@ -721,7 +742,7 @@ if __name__=='__main__':
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
             with_image=args.with_image,keep_scale=args.keep_scale)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist,'train',keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist,'train')
 
     if args.gen_val:
         print('Start gen_val...')
@@ -733,7 +754,7 @@ if __name__=='__main__':
             viz=False, perturb_box2d=False, augmentX=1,
             type_whitelist=type_whitelist,
             with_image=args.with_image,keep_scale=args.keep_scale)
-        get_box3d_dim_statistics(imagesets_file, type_whitelist,'val',keep_scale=args.keep_scale)
+        get_box3d_dim_statistics(imagesets_file, type_whitelist,'val')
 
     if args.gen_val_rgb_detection:
         print('Start gen_val_rgb_detection...')

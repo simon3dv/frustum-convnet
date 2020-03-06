@@ -670,7 +670,6 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     mry = rys.mean()
     mmtbcs = mtbcs.mean(0)
     msize2d = size2d.mean(0)
-    ipdb.set_trace()
     print('Average npoints in 3d box: %.1f' % npoints.mean())
     print('Median npoints in 3d box: %.1f' % np.median(npoints))
     print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))

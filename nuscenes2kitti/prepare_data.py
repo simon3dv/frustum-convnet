@@ -631,6 +631,7 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     mean_t_list = []
     mean_t_by_center_list = []
     npoints_list = []
+    size2d_list = []
     data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
     for data_idx in tqdm(data_idx_list):
         calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
@@ -653,21 +654,30 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
             mean_t_by_center_list.append(pts_in_box3d.mean(0))
             npoints_list.append(pts_in_box3d.shape[0])
 
+            # 2d infos
+            xmin,ymin,xmax,ymax = obj.box2d
+            w = xmax-xmin
+            h = ymax-ymin
+            size2d_list.append([w,h])
+
     dimensions = np.array(dimension_list)
     mts = np.array(mean_t_list)
     rys = np.array(ry_list)
     mtbcs = np.array(mean_t_by_center_list)
     npoints = np.array(npoints_list)
+    size2d = np.array(size2d_list)
     md = dimensions.mean(0)
     mmt = mts.mean(0)
     mry = rys.mean()
     mmtbcs = mtbcs.mean(0)
     mnp = npoints.mean()
+    msize2d = size2d.mean(0)
     print('Average npoints in 3d box: %.1f' % mnp)
     print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))
     print('mean points related to box center: (%.1f,%.1f,%.1f)' % (mmtbcs[0], mmtbcs[1], mmtbcs[2]))
     print('mean size: (%.1f,%.1f,%.1f)' % (md[0],md[1],md[2]))
     print('mean ry: (%.2f)' % (mry))
+    print('mean size2d (%.2f, %.2f)' % (msize2d[0],msize2d[1]))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()

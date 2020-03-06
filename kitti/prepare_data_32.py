@@ -24,9 +24,9 @@ sys.path.append(ROOT_DIR)
 import kitti_util as utils
 from kitti_object import kitti_object
 from draw_util import get_lidar_in_image_fov
-
-from ops.pybind11.rbbox_iou import bbox_overlaps_2d
 from kitti_fv_util import keep_32
+from ops.pybind11.rbbox_iou import bbox_overlaps_2d
+
 
 def in_hull(p, hull):
     from scipy.spatial import Delaunay
@@ -53,7 +53,7 @@ def extract_pc_in_box2d(pc, box2d):
 
 
 def random_shift_box2d(box2d, img_height, img_width, shift_ratio=0.1):
-    ''' Randomly shift box center, randomly scale width and height 
+    ''' Randomly shift box center, randomly scale width and height
     '''
     r = shift_ratio
     xmin, ymin, xmax, ymax = box2d
@@ -150,6 +150,7 @@ def extract_frustum_det_data(idx_filename, split, output_filename, det_filename,
             continue
 
         pc_velo = dataset.get_lidar(data_idx)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
         pc_rect[:, 3] = pc_velo[:, 3]
@@ -301,7 +302,7 @@ def extract_frustum_data(idx_filename, split, output_filename,
         calib = dataset.get_calibration(data_idx)  # 3 by 4 matrix
         objects = dataset.get_label_objects(data_idx)
         pc_velo = dataset.get_lidar(data_idx)
-        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1/2)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
         pc_rect[:, 3] = pc_velo[:, 3]
@@ -391,7 +392,7 @@ def extract_frustum_data(idx_filename, split, output_filename,
 
     print('save in {}'.format(output_filename))
 
-   
+
 
 def get_box3d_dim_statistics(idx_filename):
     ''' Collect and dump 3D bounding box statistics '''
@@ -491,6 +492,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
         if cache_id != data_idx:
             calib = dataset.get_calibration(data_idx)  # 3 by 4 matrix
             pc_velo = dataset.get_lidar(data_idx)
+            pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
             pc_rect = np.zeros_like(pc_velo)
             pc_rect[:, 0:3] = calib.project_velo_to_rect(pc_velo[:, 0:3])
             pc_rect[:, 3] = pc_velo[:, 3]
@@ -542,7 +544,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
         input_list.append(pc_in_box_fov.astype(np.float32, copy=False))
         frustum_angle_list.append(frustum_angle)
         calib_list.append(calib.calib_dict)
-    
+
     with open(output_filename, 'wb') as fp:
         pickle.dump(id_list, fp, -1)
         pickle.dump(box2d_list, fp, -1)
@@ -554,11 +556,11 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
 
     print('total_objects %d' % len(id_list))
     print('save in {}'.format(output_filename))
-   
+
 
 def write_2d_rgb_detection(det_filename, split, result_dir):
     ''' Write 2D detection results for KITTI evaluation.
-        Convert from Wei's format to KITTI format. 
+        Convert from Wei's format to KITTI format.
 
     Input:
         det_filename: string, each line is
@@ -605,9 +607,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--gen_train', action='store_true',
                         help='Generate train split frustum data with perturbed GT 2D boxes')
+
     parser.add_argument('--gen_val', action='store_true', help='Generate val split frustum data with GT 2D boxes')
+
     parser.add_argument('--gen_val_rgb_detection', action='store_true',
                         help='Generate val split frustum data with RGB detection 2D boxes')
+
     parser.add_argument('--car_only', action='store_true', help='Only generate cars')
     parser.add_argument('--people_only', action='store_true', help='Only generate peds and cycs')
     parser.add_argument('--save_dir', default=None, type=str, help='data directory to save data')
@@ -656,5 +661,5 @@ if __name__ == '__main__':
         extract_frustum_data_rgb_detection(
             os.path.join(BASE_DIR, 'rgb_detections/rgb_detection_val.txt'),
             'training',
-            os.path.join(save_dir, output_prefix + 'val_rgb_detection.pickle'),
+            os.path.join(save_dir, output_prefix + 'val_rgb_detection_32scan.pickle'),
             type_whitelist=type_whitelist)

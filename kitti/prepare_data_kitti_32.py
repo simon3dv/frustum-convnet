@@ -253,7 +253,7 @@ def random_shift_box2d(box2d, shift_ratio=0.1):
     return np.array([cx2-w2/2.0, cy2-h2/2.0, cx2+w2/2.0, cy2+h2/2.0])
 
 def extract_frustum_data(idx_filename, split, output_filename, viz=False,
-                       perturb_box2d=False, augmentX=1, type_whitelist=['Car'], with_image=False, keep_scale=1/4):
+                       perturb_box2d=False, augmentX=1, type_whitelist=['Car'], with_image=False, keep_scale=1/4,noise_scale=0.0):
     ''' Extract point clouds and corresponding annotations in frustums
         defined generated from 2D bounding boxes
         Lidar points and 3d boxes are in *rect camera* coord system
@@ -298,6 +298,8 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
         objects = dataset.get_label_objects(data_idx)
         pc_velo = dataset.get_lidar(data_idx)
         pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
+        if noise_scale >= 1e-7:
+            pc_velo = add_noise(pc_velo, scale=noise_scale)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
         pc_rect[:,3] = pc_velo[:,3]
@@ -432,7 +434,7 @@ def get_box3d_dim_statistics(idx_filename, type_whitelist=['Car','Pedestrian','C
             with open(os.path.join(BASE_DIR, split + '_' + type + '_' + 'box3d_mean_dimensions_32scan.pickle'), 'wb') as fp:
                 pickle.dump(dimensions_mean, fp)
 
-def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train', keep_scale=1/4):
+def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train', keep_scale=1/4, noise_scale=0.0):
     ''' Collect and dump 3D bounding box statistics '''
     dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'))
 
@@ -447,6 +449,8 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
         calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
         pc_velo = dataset.get_lidar(data_idx)
         pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
+        if noise_scale >= 1e-7:
+            pc_velo = add_noise(pc_velo, scale=noise_scale)
         pc_rect = calib.project_velo_to_rect(pc_velo[:, 0:3])
         objects = dataset.get_label_objects(data_idx)
         for obj_idx in range(len(objects)):
@@ -501,7 +505,8 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
                                        type_whitelist=['Car'],
                                        img_height_threshold=25,
                                        lidar_point_threshold=5,
-                                       keep_scale=1/4):
+                                       keep_scale=1/4,
+                                       noise_scale=0.0):
     ''' Extract point clouds in frustums extruded from 2D detection boxes.
         Update: Lidar points and 3d boxes are in *rect camera* coord system
             (as that in 3d box label files)
@@ -676,7 +681,7 @@ if __name__=='__main__':
                         help='data_idx for demo.')
     parser.add_argument('--obj_idx', type=int, default=0,
                         help='obj_idx for demo.')
-    parser.add_argument('--keep_scale', type=float, default=1/4,
+    parser.add_argument('--keep_scale', type=float, default=1/8,
                         help='keep_scale')
     parser.add_argument('--noise_scale', type=float, default=0.0,
                         help='noise_scale')
@@ -712,7 +717,8 @@ if __name__=='__main__':
     if args.demo:
         demo(data_idx=args.data_idx, object_idx=args.obj_idx, show_images=True, show_lidar=True,
              show_lidar_2d=True, show_lidar_box=True,
-             show_project=True, show_lidar_frustum=True,keep_scale=args.keep_scale)  # draw 2d box and 3d box
+             show_project=True, show_lidar_frustum=True,keep_scale=args.keep_scale,
+             noise_scale=args.noise_scale)  # draw 2d box and 3d box
         """
         demo(data_idx=args.data_idx, object_idx=args.obj_idx, show_images=True, show_lidar=False,
              show_lidar_2d=False, show_lidar_box=True,
@@ -729,7 +735,7 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, output_prefix + 'mini.pickle'),
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
-            with_image=args.with_image,keep_scale=args.keep_scale)
+            with_image=args.with_image,keep_scale=args.keep_scale,noise_scale=args.noise_scale)
         get_box3d_dim_statistics(imagesets_file, type_whitelist, 'train')
 
     if args.gen_train:
@@ -741,7 +747,7 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'train_32scan.pickle'),
             viz=False, perturb_box2d=True, augmentX=5,
             type_whitelist=type_whitelist,
-            with_image=args.with_image,keep_scale=args.keep_scale)
+            with_image=args.with_image,keep_scale=args.keep_scale,noise_scale=args.noise_scale)
         get_box3d_dim_statistics(imagesets_file, type_whitelist,'train')
 
     if args.gen_val:
@@ -753,7 +759,7 @@ if __name__=='__main__':
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'val_32scan.pickle'),
             viz=False, perturb_box2d=False, augmentX=1,
             type_whitelist=type_whitelist,
-            with_image=args.with_image,keep_scale=args.keep_scale)
+            with_image=args.with_image,keep_scale=args.keep_scale,noise_scale=args.noise_scale)
         get_box3d_dim_statistics(imagesets_file, type_whitelist,'val')
 
     if args.gen_val_rgb_detection:
@@ -763,4 +769,4 @@ if __name__=='__main__':
             'training',
             os.path.join(BASE_DIR, 'data', 'pickle_data', output_prefix+'val_rgb_detection_32scan.pickle'),
             viz=False,
-            type_whitelist=type_whitelist,keep_scale=args.keep_scale)
+            type_whitelist=type_whitelist,keep_scale=args.keep_scale,noise_scale=args.noise_scale)

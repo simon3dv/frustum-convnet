@@ -73,9 +73,9 @@ if __name__ == '__main__':
 
     split = args.version
     start_index = 0
-    data_root = 'dataset/nuScenes/'+split+'/'
-    sets_root = 'dataset/nuScenes2KITTI/image_sets/'
-    out_root = 'dataset/nuScenes2KITTI/'
+    data_root = 'data/nuScenes/'+split+'/'
+    sets_root = 'data/nuScenes2KITTI/image_sets/'
+    out_root = 'data/nuScenes2KITTI/'
     img_output_root = out_root + split + '/'
     label_output_root = out_root + split + '/'
     velodyne_output_root = out_root + split + '/LIDAR_TOP/'

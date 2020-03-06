@@ -143,6 +143,7 @@ def vis_label(split='v1.0-mini',sensor_list=['CAM_FRONT'],type_whitelist=['Car']
 
         print('Saving images with 2d boxes to {}...'.format(save2ddir))
         print('Saving images with 3d boxes to {}...'.format(save3ddir))
+        ipdb.set_trace()
         print(dataset.num_samples)
         for data_idx in tqdm(range(dataset.num_samples)):
             # Load data from dataset

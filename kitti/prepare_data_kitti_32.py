@@ -43,7 +43,7 @@ def extract_pc_in_box2d(pc, box2d):
     box2d_roi_inds = in_hull(pc[:,0:2], box2d_corners)
     return pc[box2d_roi_inds,:], box2d_roi_inds
 
-def demo_object(data_idx=11,object_idx=0):
+def demo_object(data_idx=11,object_idx=0,keep_scale=1/4):
     import mayavi.mlab as mlab
     from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     def draw_3d_object(pc, color=None):
@@ -88,7 +88,7 @@ def demo_object(data_idx=11,object_idx=0):
     x, y, z = obj.t
     # show 3d
     pc_velo = dataset.get_lidar(data_idx)[:, 0:3]
-    pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
+    pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
     pc_rect = calib.project_velo_to_rect(pc_velo)
     pc_norm = pc_rect - obj.t
     keep = []
@@ -107,7 +107,7 @@ def demo_object(data_idx=11,object_idx=0):
     draw_gt_boxes3d([box3d_pts_3d], fig=fig, draw_text=False)
     input()
 
-def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d=True,show_lidar_box=True,show_project=True,show_lidar_frustum=True):
+def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d=True,show_lidar_box=True,show_project=True,show_lidar_frustum=True,keep_scale=1/4):
     import mayavi.mlab as mlab
     from viz_util import draw_lidar, draw_lidar_simple, draw_gt_boxes3d
     dataset = kitti_object(os.path.join(ROOT_DIR, 'data/kitti'))
@@ -138,7 +138,7 @@ def demo(data_idx=11,object_idx=0,show_images=True,show_lidar=True,show_lidar_2d
     img_height, img_width, img_channel = img.shape
     print(('Image shape: ', img.shape))
     pc_velo = dataset.get_lidar(data_idx)[:,0:3]#(115384, 3)
-    pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
+    pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
     calib = dataset.get_calibration(data_idx)#utils.Calibration(calib_filename)
 
     ## Draw lidar in rect camera coord
@@ -234,7 +234,7 @@ def random_shift_box2d(box2d, shift_ratio=0.1):
     return np.array([cx2-w2/2.0, cy2-h2/2.0, cx2+w2/2.0, cy2+h2/2.0])
 
 def extract_frustum_data(idx_filename, split, output_filename, viz=False,
-                       perturb_box2d=False, augmentX=1, type_whitelist=['Car'], with_image=False):
+                       perturb_box2d=False, augmentX=1, type_whitelist=['Car'], with_image=False, keep_scale=1/4):
     ''' Extract point clouds and corresponding annotations in frustums
         defined generated from 2D bounding boxes
         Lidar points and 3d boxes are in *rect camera* coord system
@@ -278,7 +278,7 @@ def extract_frustum_data(idx_filename, split, output_filename, viz=False,
             image_filename = os.path.join(dataset.image_dir, '%06d.png'%(data_idx))#dataset.get_image(data_idx)#(370, 1224, 3),uint8
         objects = dataset.get_label_objects(data_idx)
         pc_velo = dataset.get_lidar(data_idx)
-        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 4)
+        pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
         pc_rect = np.zeros_like(pc_velo)
         pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
         pc_rect[:,3] = pc_velo[:,3]
@@ -422,11 +422,11 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     ry_list = []
     mean_t_list = []
     mean_t_by_center_list = []
+    mnp_list = []
     data_idx_list = [int(line.rstrip()) for line in open(idx_filename)]
     for data_idx in tqdm(data_idx_list):
         calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
         pc_velo = dataset.get_lidar(data_idx)
-        pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
         pc_rect = calib.project_velo_to_rect(pc_velo[:, 0:3])
         objects = dataset.get_label_objects(data_idx)
         for obj_idx in range(len(objects)):
@@ -442,6 +442,7 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
             mean_t_list.append(pts_in_box3d.mean(0))
             pts_in_box3d -= obj.t
             mean_t_by_center_list.append(pts_in_box3d.mean(0))
+            mnp_list.append(pts_in_box3d.shape[0])
 
     dimensions = np.array(dimension_list)
     mts = np.array(mean_t_list)
@@ -451,27 +452,12 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     mmt = mts.mean(0)
     mry = rys.mean()
     mmtbcs = mtbcs.mean(0)
-
-
+    mnp = mnp_list.mean()
+    print('Average npoints in 3d box: %.1f' % mnp)
     print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))
     print('mean points related to box center: (%.1f,%.1f,%.1f)' % (mmtbcs[0], mmtbcs[1], mmtbcs[2]))
     print('mean size: (%.1f,%.1f,%.1f)' % (md[0],md[1],md[2]))
     print('mean ry: (%.2f)' % (mry))
-    """
-    train-carpedcyc
-    mean points in 3d box: (-1.8,1.0,26.5)
-    mean points related to box center: (0.0,-0.7,-0.8)
-    mean size: (3.4,1.4,1.6)
-    mean ry: (0.03)
-
-
-    train-car
-    mean points in 3d box: (-2.3,1.0,28.0)
-    mean points related to box center: (0.0,-0.7,-1.0)
-    mean size: (3.9,1.6,1.5)
-    mean ry: (0.02)
-
-    """
 
 def read_det_file(det_filename):
     ''' Parse lines in 2D detection output files '''
@@ -493,7 +479,8 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
                                        viz=False,
                                        type_whitelist=['Car'],
                                        img_height_threshold=25,
-                                       lidar_point_threshold=5):
+                                       lidar_point_threshold=5,
+                                       keep_scale=1/4):
     ''' Extract point clouds in frustums extruded from 2D detection boxes.
         Update: Lidar points and 3d boxes are in *rect camera* coord system
             (as that in 3d box label files)
@@ -530,7 +517,7 @@ def extract_frustum_data_rgb_detection(det_filename, split, output_filename,
         if cache_id != data_idx:
             calib = dataset.get_calibration(data_idx) # 3 by 4 matrix
             pc_velo = dataset.get_lidar(data_idx)
-            pc_velo, _ = keep_32(pc_velo, odd=True, scale=1 / 2)
+            pc_velo, _ = keep_32(pc_velo, odd=True, scale=keep_scale)
             pc_rect = np.zeros_like(pc_velo)
             pc_rect[:,0:3] = calib.project_velo_to_rect(pc_velo[:,0:3])
             pc_rect[:,3] = pc_velo[:,3]

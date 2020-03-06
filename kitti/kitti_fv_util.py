@@ -66,7 +66,7 @@ def pto_depth_map(velo_points,
 
 def keep_32(velo_points,
                   H=64, W=512, C=5, dtheta=np.radians(0.4), dphi=np.radians(90. / 512.0), odd=False,scale=1):
-    x, y, z, i = velo_points[:, 0], velo_points[:, 1], velo_points[:, 2], velo_points[:, 3]
+    x, y, z= velo_points[:, 0], velo_points[:, 1], velo_points[:, 2]
     d = np.sqrt(x ** 2 + y ** 2 + z ** 2)
     r = np.sqrt(x ** 2 + y ** 2)
     d[d == 0] = 0.000001

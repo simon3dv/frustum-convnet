@@ -1,5 +1,5 @@
 TRAIN:
-  FILE: kitti/data/pickle_data/frustum_caronly_32scan.pickle
+  FILE: kitti/data/pickle_data/frustum_caronly_train_32scan.pickle
   BATCH_SIZE: 32
   START_EPOCH: 0
   MAX_EPOCH: 50

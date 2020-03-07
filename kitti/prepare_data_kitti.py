@@ -409,9 +409,9 @@ def get_box3d_dim_statistics(idx_filename, type_whitelist=['Car','Pedestrian','C
             with open(os.path.join(BASE_DIR, split + '_' + type + '_' + 'box3d_mean_dimensions.pickle'), 'wb') as fp:
                 pickle.dump(dimensions_mean, fp)
 
-def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='train'):
+def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cyclist'],split='training'):
     ''' Collect and dump 3D bounding box statistics '''
-    dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'))
+    dataset = kitti_object(os.path.join(ROOT_DIR,'data/kitti'),split='training')
 
     dimension_list = []
     type_list = []
@@ -452,26 +452,25 @@ def print_box3d_statistics(idx_filename,type_whitelist=['Car','Pedestrian','Cycl
     mtbcs = np.array(mean_t_by_center_list)
     npoints = np.array(npoints_list)
     size2d = np.array(size2d_list)
-    md = dimensions.mean(0)
-    mmt = mts.mean(0)
-    mry = rys.mean()
-    mmtbcs = mtbcs.mean(0)
-    msize2d = size2d.mean(0)
-
-    print('Average npoints in 3d box: %.1f' % npoints.mean())
-    print('Median npoints in 3d box: %.1f' % np.median(npoints))
-    print('mean points in 3d box: (%.1f,%.1f,%.1f)' % (mmt[0],mmt[1],mmt[2]))
-    print('mean points related to box center: (%.1f,%.1f,%.1f)' % (mmtbcs[0], mmtbcs[1], mmtbcs[2]))
-    print('mean size: (%.1f,%.1f,%.1f)' % (md[0],md[1],md[2]))
-    print('mean ry: (%.2f)' % (mry))
-    print('mean size2d (%.2f, %.2f)' % (msize2d[0],msize2d[1]))
+    print('Average npoints in 3d box: %.2f' % npoints.mean())
+    print('Median  npoints in 3d box: %.2f' % np.median(npoints))
+    print('Average points location in 3d box: (%.2f,%.2f,%.2f)' % (mts.mean(0)[0],mts.mean(0)[1],mts.mean(0)[2]))
+    print('Median  points location in 3d box: (%.2f,%.2f,%.2f)' % (np.median(mts,0)[0],np.median(mts,0)[1],np.median(mts,0)[2]))
+    print('Average points location related to box center: (%.2f,%.2f,%.2f)' % (
+        mtbcs.mean(0)[0], mtbcs.mean(0)[1], mtbcs.mean(0)[2]))
+    print('Median  points location related to box center: (%.2f,%.2f,%.2f)' % (
+        np.median(mtbcs,0)[0], np.median(mtbcs,0)[1], np.median(mtbcs,0)[2]))
+    print('Average box3d size: (%.2f,%.2f,%.2f)' % (dimensions.mean(0)[0],dimensions.mean(0)[1],dimensions.mean(0)[2]))
+    print('Median box3d size: (%.2f,%.2f,%.2f)' % (np.median(dimensions,0)[0], np.median(dimensions,0)[1], np.median(dimensions,0)[2]))
+    # print('mean ry: (%.2f)' % (rys.mean()))
+    print('Average size2d (%.2f, %.2f)' % (size2d.mean(0)[0],size2d.mean(0)[1]))
+    print('Median  size2d (%.2f, %.2f)' % (np.median(size2d,0)[0], np.median(size2d,1)[1]))
     """
     train-carpedcyc
     mean points in 3d box: (-1.8,1.0,26.5)
     mean points related to box center: (0.0,-0.7,-0.8)
     mean size: (3.4,1.4,1.6)
     mean ry: (0.03)
-
 
     train-car
     mean points in 3d box: (-2.3,1.0,28.0)
@@ -700,8 +699,8 @@ if __name__=='__main__':
         cluster()
         exit()
     if args.show_stats:
-        imagesets_file = os.path.join(BASE_DIR, 'image_sets/train.txt')
-        print_box3d_statistics(imagesets_file, type_whitelist, 'train')
+        imagesets_file = os.path.join(BASE_DIR, 'image_sets/val.txt')
+        print_box3d_statistics(imagesets_file, type_whitelist, 'training')
     if args.demo_object:
         demo_object(data_idx=args.data_idx, object_idx=args.obj_idx)
     if args.demo:

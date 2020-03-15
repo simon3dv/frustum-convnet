@@ -437,8 +437,104 @@ def dataset_viz():
         show_lidar_with_boxes(pc_velo, objects, calib, sensor, True, img_width, img_height)
         input()
 
+def return_image_with_boxes(img, objects, calib, show3d=True):
+    ''' Show image with 2D bounding boxes '''
+    img1 = np.copy(img) # for 2d bbox
+    img2 = np.copy(img) # for 3d bbox
+    for obj in objects:
+        if obj.type == 'DontCare':continue
+        if obj.type != 'Car': continue
+        cv2.rectangle(img1, (int(obj.xmin),int(obj.ymin)),
+            (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
+        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
+        if np.sum(box3d_pts_2d==None)!=1:
+            img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
+    # Image.fromarray(img1).show()
+    if show3d:
+        # Image.fromarray(img2).show()
+        return img1,img2
+    else:
+        return img1
+
+def return_image_with_preds(img, objects, calib, show3d=True):
+    ''' Show image with 2D bounding boxes '''
+    img1 = np.copy(img) # for 2d bbox
+    img2 = np.copy(img) # for 3d bbox
+    for obj in objects:
+        if obj.type=='DontCare':continue
+        cv2.rectangle(img1, (int(obj.xmin),int(obj.ymin)),
+            (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
+        cv2.putText(img1, "%.2f"%(obj.score), org=(int(obj.xmin),int(obj.ymin)),
+                     fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.5,color=(0,0,255))
+        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
+        if np.sum(box3d_pts_2d==None)!=1:
+            img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
+    # Image.fromarray(img1).show()
+    if show3d:
+        # Image.fromarray(img2).show()
+        return img1,img2
+    else:
+        return img1
+
+def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'))
+    split = 'v1.0-trainval'
+    save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis2d')
+    save3ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis3d')
+    save2ddir_pred = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis2d_pred' + name)
+    save3ddir_pred = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis3d_pred' + name)
+    if os.path.isdir(save2ddir) == True:
+        print('previous save2ddir found. deleting...')
+        shutil.rmtree(save2ddir)
+    os.makedirs(save2ddir)
+    if os.path.isdir(save3ddir) == True:
+        print('previous save3ddir found. deleting...')
+        shutil.rmtree(save3ddir)
+    os.makedirs(save3ddir)
+    if os.path.isdir(save2ddir_pred) == True:
+        print('previous save2ddir_pred found. deleting...')
+        shutil.rmtree(save2ddir_pred)
+    os.makedirs(save2ddir_pred)
+    if os.path.isdir(save3ddir_pred) == True:
+        print('previous save3ddir_pred found. deleting...')
+        shutil.rmtree(save3ddir_pred)
+    os.makedirs(save3ddir_pred)
+
+    for data_idx in range(len(dataset)):
+        img = dataset.get_image(data_idx)
+        calib = dataset.get_calibration(data_idx)
+        if not pred_only:
+            # Load data from dataset
+            objects = dataset.get_label_objects(data_idx)
+            #objects[0].print_object()
+            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img_height, img_width, img_channel = img.shape
+            print(('Image shape: ', img.shape))
+            #pc_velo = dataset.get_lidar(data_idx)[:,0:3]
+            # Draw 2d and 3d boxes on image
+            # show_image_with_boxes(img, objects, calib, False)
+            img1,img2= return_image_with_boxes(img, objects, calib, True)
+            cv2.imwrite(os.path.join(save2ddir, str(data_idx).zfill(6) + '.png'),img1)
+            cv2.imwrite(os.path.join(save3ddir, str(data_idx).zfill(6) + '.png'),img2)
+
+        objects_pred_label_filename = os.path.join(pred_label_dir, '%06d.txt' % (data_idx))
+        if os.path.exists(objects_pred_label_filename):
+            print('writing...')
+            if os.path.exists(objects_pred_label_filename):
+                objects_pred = utils.read_label(objects_pred_label_filename)
+            img1_pred,img2_pred= return_image_with_preds(img, objects_pred, calib, True)
+            cv2.imwrite(os.path.join(save2ddir_pred, str(data_idx).zfill(6) + '.png'),img1_pred)
+            cv2.imwrite(os.path.join(save3ddir_pred, str(data_idx).zfill(6) + '.png'),img2_pred)
+        else:
+            print('%s not exist'%(objects_pred_label_filename))
+        # input()
+        # Show all LiDAR points. Draw 3d box in LiDAR point cloud
+        # show_lidar_with_boxes(pc_velo, objects, calib, True, img_width, img_height)
+        # input()
+
 if __name__=='__main__':
     import mayavi.mlab as mlab
-    from viz_util import draw_lidar_simple, draw_gt_boxes3d
-    # dataset_viz()
-    dataset_export_2d_crop()
+    from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
+    #dataset_viz()
+    dataset_viz_pred('output/da/k2n/val_nms/result',pred_only=False,name='visk2n')
+    #dataset_export_2d_crop()

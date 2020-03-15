@@ -416,13 +416,14 @@ def show_lidar_on_image(pc_velo, img, calib, sensor, img_width, img_height):
     return img
 
 def dataset_viz():
+    sensor = 'CAM_FRONT'
     dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'dataset/KITTI/object'))
 
     for data_idx in range(len(dataset)):
         # Load data from dataset
-        objects = dataset.get_label_objects(data_idx)
+        objects = dataset.get_label_objects(sensor,data_idx)
         objects[0].print_object()
-        img = dataset.get_image(data_idx)
+        img = dataset.get_image(sensor,data_idx)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) 
         img_height, img_width, img_channel = img.shape
         print(('Image shape: ', img.shape))

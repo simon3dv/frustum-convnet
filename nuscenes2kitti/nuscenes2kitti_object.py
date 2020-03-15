@@ -481,8 +481,8 @@ def return_image_with_preds(img, objects, calib, show3d=True):
 
 def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
     sensor = 'CAM_FRONT'
-    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'))
     split = 'v1.0-trainval'
+    dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'),split=split)
     save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis2d')
     save3ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis3d')
     save2ddir_pred = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis2d_pred' + name)
@@ -540,5 +540,5 @@ if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
     #dataset_viz()
-    dataset_viz_pred('output/da/k2n/val_nms/result',pred_only=False,name='visk2n')
+    dataset_viz_pred('output/da/k2n/val_nms/result',pred_only=False,name='k2n')
     #dataset_export_2d_crop()

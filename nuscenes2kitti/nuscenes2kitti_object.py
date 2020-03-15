@@ -507,19 +507,6 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
     for data_idx in range(len(dataset)):
         img = dataset.get_image(sensor, data_idx)
         calib = dataset.get_calibration(data_idx)
-        if not pred_only:
-            # Load data from dataset
-            objects = dataset.get_label_objects(sensor, data_idx)
-            #objects[0].print_object()
-            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img_height, img_width, img_channel = img.shape
-            print(('Image shape: ', img.shape))
-            #pc_velo = dataset.get_lidar(data_idx)[:,0:3]
-            # Draw 2d and 3d boxes on image
-            # show_image_with_boxes(img, objects, calib, False)
-            img1,img2= return_image_with_boxes(img, objects, calib, True)
-            cv2.imwrite(os.path.join(save2ddir, str(data_idx).zfill(6) + '.png'),img1)
-            cv2.imwrite(os.path.join(save3ddir, str(data_idx).zfill(6) + '.png'),img2)
 
         objects_pred_label_filename = os.path.join(pred_label_dir, '%06d.txt' % (data_idx))
         if os.path.exists(objects_pred_label_filename):
@@ -529,6 +516,20 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
             img1_pred,img2_pred= return_image_with_preds(img, objects_pred, calib, True)
             cv2.imwrite(os.path.join(save2ddir_pred, str(data_idx).zfill(6) + '.png'),img1_pred)
             cv2.imwrite(os.path.join(save3ddir_pred, str(data_idx).zfill(6) + '.png'),img2_pred)
+
+            if not pred_only:
+                # Load data from dataset
+                objects = dataset.get_label_objects(sensor, data_idx)
+                # objects[0].print_object()
+                # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                img_height, img_width, img_channel = img.shape
+                print(('Image shape: ', img.shape))
+                # pc_velo = dataset.get_lidar(data_idx)[:,0:3]
+                # Draw 2d and 3d boxes on image
+                # show_image_with_boxes(img, objects, calib, False)
+                img1, img2 = return_image_with_boxes(img, objects, calib, True)
+                cv2.imwrite(os.path.join(save2ddir, str(data_idx).zfill(6) + '.png'), img1)
+                cv2.imwrite(os.path.join(save3ddir, str(data_idx).zfill(6) + '.png'), img2)
         else:
             print('%s not exist'%(objects_pred_label_filename))
         # input()

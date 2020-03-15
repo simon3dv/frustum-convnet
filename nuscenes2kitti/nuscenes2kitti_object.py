@@ -505,6 +505,7 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
     os.makedirs(save3ddir_pred)
 
     for data_idx in range(len(dataset)):
+        id data_idx < 17000: continue
         img = dataset.get_image(sensor, data_idx)
         calib = dataset.get_calibration(data_idx)
 

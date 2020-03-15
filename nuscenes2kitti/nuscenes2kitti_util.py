@@ -37,7 +37,8 @@ class Object3d(object):
         self.l = data[10] # box length (in meters)
         self.t = (data[11],data[12],data[13]) # location (x,y,z) in camera coord.
         self.ry = data[14] # yaw angle (around Y-axis in camera coordinates) [-pi..pi]
-
+        if len(data)>15:
+            self.score = data[15]
     def print_object(self):
         print('Type, truncation, occlusion, alpha: %s, %d, %d, %f' % \
             (self.type, self.truncation, self.occlusion, self.alpha))

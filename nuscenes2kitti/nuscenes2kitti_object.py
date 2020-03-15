@@ -478,6 +478,7 @@ def return_image_with_preds(img, objects, calib, show3d=True):
         return img1
 
 def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
+    sensor = 'CAM_FRONT'
     dataset = nuscenes2kitti_object(os.path.join(ROOT_DIR, 'data/nuScenes2KITTI'))
     split = 'v1.0-trainval'
     save2ddir = os.path.join(ROOT_DIR, 'data/nuScenes2KITTI',split,'vis2d')
@@ -502,11 +503,11 @@ def dataset_viz_pred(pred_label_dir, pred_only=False, name=''):
     os.makedirs(save3ddir_pred)
 
     for data_idx in range(len(dataset)):
-        img = dataset.get_image(data_idx)
+        img = dataset.get_image(sensor, data_idx)
         calib = dataset.get_calibration(data_idx)
         if not pred_only:
             # Load data from dataset
-            objects = dataset.get_label_objects(data_idx)
+            objects = dataset.get_label_objects(sensor, data_idx)
             #objects[0].print_object()
             #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             img_height, img_width, img_channel = img.shape

@@ -440,6 +440,7 @@ def dataset_viz():
 
 def return_image_with_boxes(img, objects, calib, show3d=True):
     ''' Show image with 2D bounding boxes '''
+    sensor = 'CAM_FRONT'
     img1 = np.copy(img) # for 2d bbox
     img2 = np.copy(img) # for 3d bbox
     for obj in objects:
@@ -447,7 +448,7 @@ def return_image_with_boxes(img, objects, calib, show3d=True):
         if obj.type != 'Car': continue
         cv2.rectangle(img1, (int(obj.xmin),int(obj.ymin)),
             (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
-        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
+        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, getattr(calib,sensor))
         if np.sum(box3d_pts_2d==None)!=1:
             img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
     # Image.fromarray(img1).show()
@@ -459,6 +460,7 @@ def return_image_with_boxes(img, objects, calib, show3d=True):
 
 def return_image_with_preds(img, objects, calib, show3d=True):
     ''' Show image with 2D bounding boxes '''
+    sensor = 'CAM_FRONT'
     img1 = np.copy(img) # for 2d bbox
     img2 = np.copy(img) # for 3d bbox
     for obj in objects:
@@ -467,7 +469,7 @@ def return_image_with_preds(img, objects, calib, show3d=True):
             (int(obj.xmax),int(obj.ymax)), (0,255,0), 2)
         cv2.putText(img1, "%.2f"%(obj.score), org=(int(obj.xmin),int(obj.ymin)),
                      fontFace=cv2.FONT_HERSHEY_TRIPLEX, fontScale=0.5,color=(0,0,255))
-        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, calib.P)
+        box3d_pts_2d, box3d_pts_3d = utils.compute_box_3d(obj, getattr(calib,sensor))
         if np.sum(box3d_pts_2d==None)!=1:
             img2 = utils.draw_projected_box3d(img2, box3d_pts_2d)
     # Image.fromarray(img1).show()

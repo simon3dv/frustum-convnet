@@ -7,6 +7,9 @@ import os
 import math
 import time
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+sys.path.append(ROOT_DIR)
 import numpy as np
 
 import torch
@@ -61,7 +64,6 @@ class PointNetModule(nn.Module):
 
     def forward(self, pc, feat, new_pc=None):
         batch_size = pc.size(0)
-
         npoint = new_pc.shape[2]
         k = self.nsample
 
@@ -195,7 +197,6 @@ class ConvFeatNet(nn.Module):
     def forward(self, x1, x2, x3, x4):
 
         x = self.block1_conv1(x1)
-
         x = self.block2_conv1(x)
         x = self.block2_conv2(x)
         x = torch.cat([x, x2], 1)

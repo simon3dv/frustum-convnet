@@ -540,5 +540,5 @@ if __name__=='__main__':
     import mayavi.mlab as mlab
     from viz_util import draw_lidar_simple, draw_lidar, draw_gt_boxes3d
     #dataset_viz()
-    dataset_viz_pred('output/da/k2n/val_nms/result',pred_only=False,name='k2n')
+    dataset_viz_pred('output/da/k2n/val_nms/result/data',pred_only=False,name='k2n')
     #dataset_export_2d_crop()
